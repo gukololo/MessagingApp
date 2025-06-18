@@ -9,7 +9,6 @@
 #include "ClientUser.cpp"
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
-
 vector<SOCKET> clients;
 mutex clients_mutex;
 // Client storage
@@ -17,7 +16,7 @@ vector<ClientUser> AllClients;
 int client_count = 0;
 
 /**
- * this method checks if the received name is cuplicated
+ * this method checks if the received name is duplicated
  * @param s received name string
  * @return if it is duplicated or not
  */
@@ -83,6 +82,7 @@ int main() {
 
         //receiving the username
         string receivedName;
+        memset(buffer, 0, sizeof(buffer));
         recv(client_socket, buffer, sizeof(buffer), 0);
         receivedName = buffer;
 
@@ -104,6 +104,7 @@ int main() {
             //sending the duplicated answer
             send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
             //receiving a new name
+            memset(buffer, 0, sizeof(buffer));
             recv(client_socket, buffer, sizeof(buffer), 0);
             receivedName = buffer;
             duplicated = isDuplicated(receivedName);
