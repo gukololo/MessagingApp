@@ -58,14 +58,13 @@ int main() {
     cout << endl;
     cout<<"Enter username: ";
     cin >> name;
-    cout<<name<<endl;
 
     //sending the name we choose and sending it to the server
     send(sock, name.c_str(), name.length(), 0);
     memset(buffer, 0, sizeof(buffer));
     recv(sock, buffer, sizeof(buffer), 0);
     string duplicatedAnswer = string(buffer);
-    cout <<"received duplicated answer: " << duplicatedAnswer << endl;
+    //cout <<"received duplicated answer: " << duplicatedAnswer << endl;
     while (duplicatedAnswer == "duplicated") {
         cout << endl;
         cout<<"This username already exists. Try again!" << endl;
@@ -91,8 +90,8 @@ int main() {
         //after registration, the new port number is received and the communication is changing according to the new port number
         int newPortNumber;
         recv(sock, (char*)&newPortNumber, sizeof(newPortNumber), 0);
-        cout << "NEW PORT NUM: "<<newPortNumber << endl;
-
+        //cout << "NEW PORT NUM: "<<newPortNumber << endl;
+        cout<< endl;
         closesocket(sock);
         closesocket(server_socket);
 
@@ -111,7 +110,7 @@ int main() {
         //trying to communciate with server with new port
         string tempMessage ="kanka port degisti haberin ola";
         send(sock, tempMessage.c_str(), tempMessage.length(), 0);
-        cout << tempMessage << endl;
+        //cout << tempMessage << endl;
 
 
 
