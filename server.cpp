@@ -24,7 +24,7 @@ const int portNumbers[3] = {8081, 8082, 8083};
  * @param name given name
  * @return if exists or not
  */
-bool checkName(const string &name) {
+bool isDuplicated(const string &name) {
     for (int i = 0; i < AllClients.size(); i++) {
         if (AllClients[i].getClientName() == name) {
             return true;
@@ -34,20 +34,6 @@ bool checkName(const string &name) {
 
 }
 
-/**
- * this method checks if the received name is duplicated
- * @param s received name string
- * @return if it is duplicated or not
- */
-bool isDuplicated(const string &s) {
-    bool duplicated = false;
-    for (int i = 0; i < AllClients.size(); i++) {
-        if (AllClients[i].getClientName() == s) {
-            duplicated = true;
-        }
-    }
-    return duplicated;
-}
 
 /**
  *this method sends all available users to given client
@@ -87,13 +73,8 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
         receivedName = buffer;
 
         //checking if it is duplicated
-        bool duplicated = false;
-        duplicated = isDuplicated(receivedName);
+        bool duplicated = isDuplicated(receivedName);
         string duplicatedAnswer;
-        if (duplicated)
-            duplicatedAnswer ="duplicated";
-        else if (!duplicated)
-            duplicatedAnswer = "okey";
 
         //if it is duplicated, the server will send client the output
         while (duplicated){
@@ -108,6 +89,8 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
             duplicated = isDuplicated(receivedName);
 
         }
+
+        //if the username is not a duplicate we send this feedback to user
         duplicatedAnswer = "okey";
         send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
 
@@ -171,10 +154,9 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
 
          while (getline(ss, singleDest, ' ')) {
 
-             if (!checkName(singleDest)) {
+             if (!isDuplicated(singleDest)) {
                 feedback = "notOkey";
                  send(client_socket_new, feedback.c_str(), feedback.length(), 0);
-
 
 
              }
@@ -188,7 +170,6 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
     //see all available users
     else if (action == "4") {
         sendClientAllUserNames(client_socket_new);
-
     }
     //looking messaging history
     else if (action == "5") {
@@ -201,10 +182,6 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
 
 
 }
-
-
-
-
 
 
 
@@ -234,77 +211,6 @@ int main() {
             int client_size = sizeof(client_addr);
             SOCKET client_socket = accept(server_socket, (sockaddr*)&client_addr, &client_size);
             thread(handle_client_all, server_socket, client_socket,client_addr,client_size).detach();
-        // int client_size = sizeof(client_addr);
-        // SOCKET client_socket = accept(server_socket, (sockaddr*)&client_addr, &client_size);
-        //
-        // //first it will send clients the number of clients to decide whether they can continue
-        // send(client_socket, to_string(AllClients.size()).c_str(), to_string(AllClients.size()).length(), 0);
-        //
-        // //receiving the username
-        // string receivedName;
-        // memset(buffer, 0, sizeof(buffer));
-        // recv(client_socket, buffer, sizeof(buffer), 0);
-        // receivedName = buffer;
-        //
-        // //checking if it is duplicated
-        // bool duplicated = false;
-        // duplicated = isDuplicated(receivedName);
-        // string duplicatedAnswer;
-        // if (duplicated)
-        //     duplicatedAnswer ="duplicated";
-        // else if (!duplicated)
-        //     duplicatedAnswer = "okey";
-        //
-        // //if it is duplicated, the server will send client the output
-        // while (duplicated){
-        //
-        //     duplicatedAnswer ="duplicated";
-        //     //sending the duplicated answer
-        //     send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
-        //     //receiving a new name
-        //     memset(buffer, 0, sizeof(buffer));
-        //     recv(client_socket, buffer, sizeof(buffer), 0);
-        //     receivedName = buffer;
-        //     duplicated = isDuplicated(receivedName);
-        //
-        // }
-        // duplicatedAnswer = "okey";
-        // send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
-        //
-        // //registering the new client
-        // ClientUser newClient;
-        // newClient.setClientName(receivedName);
-        // newClient.setIsActive(true);
-        // client_count++;
-        // newClient.setPortNumber(portNumbers[client_count]);
-        // AllClients.push_back(newClient);
-        //
-        // //register part ended, now the application starts
-        // //first the user should receive the special port number
-        // //changing the communication according to new port number
-        // int portNumberToSend = portNumbers[client_count];
-        // send(client_socket,(char*)&portNumberToSend,sizeof(portNumberToSend),0);
-        // closesocket(server_socket);
-        //
-        // server_socket = socket(AF_INET, SOCK_STREAM, 0);
-        // sockaddr_in newServer_addr{};
-        // newServer_addr.sin_family = AF_INET;
-        // newServer_addr.sin_port = htons(portNumberToSend);
-        // newServer_addr.sin_addr.s_addr = INADDR_ANY;
-        //
-        // bind(server_socket, (sockaddr*)&newServer_addr, sizeof(newServer_addr));
-        // listen(server_socket, SOMAXCONN);
-        //
-        // closesocket(client_socket);
-        // client_size = sizeof(client_addr);
-        // client_socket = accept(server_socket, (sockaddr*)&client_addr, &client_size);
-        //
-        // //trying to receive a new message after changing port
-        // string tempMessage;
-        // memset(buffer, 0, sizeof(buffer));
-        // recv(client_socket, buffer, sizeof(buffer), 0);
-        // tempMessage = buffer;
-        // cout << "tempMessage : " << tempMessage<<endl;
 
     }
 

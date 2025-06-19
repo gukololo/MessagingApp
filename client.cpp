@@ -4,6 +4,7 @@
 #include <thread>
 #include <string>
 #include <sstream>
+#include <vector>
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
@@ -56,6 +57,7 @@ int main() {
     memset(buffer, 0, sizeof(buffer));
     recv(sock, buffer, sizeof(buffer), 0);
     string duplicatedAnswer = string(buffer);
+
     //cout <<"received duplicated answer: " << duplicatedAnswer << endl;
     while (duplicatedAnswer == "duplicated") {
         cout << endl;
@@ -77,8 +79,6 @@ int main() {
         //registration is successful
         cout << "Connected to server!" << endl;
 
-
-
         //after registration, the new port number is received and the communication is changing according to the new port number
         int newPortNumber;
         recv(sock, (char*)&newPortNumber, sizeof(newPortNumber), 0);
@@ -97,20 +97,43 @@ int main() {
         server_size = sizeof(newServer_addr);
         server_socket = accept(sock, (sockaddr*)&newServer_addr, &server_size);
 
-
-        //trying to communciate with server with new port
-
-
         //menu opens up and the application starts
         string action;
         cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
-    cin >> action;
+        cin >> action;
         //if the input is invalid
-        while (action != "1" && action != "2" && action != "3" && action != "4" ) {
+        while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6" ) {
             cout << "Your choice is invalid. Please enter a valid action (1-2-3-4)!" << endl;
             cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
             cin >> action;
         }
+
+        while (action == "1" || action == "2" || action == "3" || action == "4" || action == "5" || action == "6" ) {
+
+            send(sock, action.c_str(), action.length(), 0);
+
+            //displaying all the active clients
+            if (action == "4") {
+                memset(buffer, 0, sizeof(buffer));
+                recv(sock, buffer, sizeof(buffer), 0);
+                string activeClientNames = buffer;
+
+                vector<string> clientNames;
+                stringstream ss(activeClientNames);
+                string singleName;
+
+                while (getline(ss, singleName, ' ')) {
+                    clientNames.push_back(singleName);
+                }
+                for (int i = 0 ; i < clientNames.size(); i++) {
+                    cout << i+1 <<"."<< clientNames[i] << endl;
+                }
+
+            }
+
+        }
+
+
 
 
 
