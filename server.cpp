@@ -11,12 +11,13 @@
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
+
+// Client storage
 vector<SOCKET> clients;
 mutex clients_mutex;
-// Client storage
 vector<ClientUser> AllClients;
 int client_count = 0;
-int portNumbers[3] = {8081, 8082, 8083};
+const int portNumbers[3] = {8081, 8082, 8083};
 
 /**
  * method to check whether a name exists in the clients storage
@@ -33,7 +34,6 @@ bool checkName(const string &name) {
 
 }
 
-
 /**
  * this method checks if the received name is duplicated
  * @param s received name string
@@ -49,6 +49,10 @@ bool isDuplicated(const string &s) {
     return duplicated;
 }
 
+/**
+ *this method sends all available users to given client
+ * @param client which client to send
+ */
 void sendClientAllUserNames(SOCKET client) {
     string usernames;
     for (int i = 0; i < AllClients.size(); i++) {
@@ -57,50 +61,96 @@ void sendClientAllUserNames(SOCKET client) {
     send(client,usernames.c_str(), usernames.length(), 0);
 }
 
-void handle_client(SOCKET client_socket) {
-    char buffer[1024];
-    int bytes;
-    while ((bytes = recv(client_socket, buffer, sizeof(buffer), 0)) > 0) {
-        buffer[bytes] = '\0';
+/**
+ * method for all the handling process of a client
+ * @param server_socket
+ */
+void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in client_addr,int client_size) {
 
-        lock_guard<mutex> lock(clients_mutex);
-        for (SOCKET s : clients) {
-            if (s != client_socket) {
-                send(s, buffer, bytes, 0);
-            }
+        //a char array for receiving messages
+        char buffer [1024];
+
+        //first it will send feedback to clients to decide whether they can continue
+        string readyToStart;
+        if (client_count >= 3) {
+            readyToStart = "no";
         }
-    }
+        else {
+            readyToStart = "yes";
+        }
+        send(client_socket, readyToStart.c_str(), readyToStart.length(), 0);
 
-    lock_guard<mutex> lock(clients_mutex);
-    clients.erase(remove(clients.begin(), clients.end(), client_socket), clients.end());
-    closesocket(client_socket);
-}
-void handle_clientReal(int portNumber) {
+        //receiving the username
+        string receivedName;
+        memset(buffer, 0, sizeof(buffer));
+        recv(client_socket, buffer, sizeof(buffer), 0);
+        receivedName = buffer;
 
-    char buffer[1024];
+        //checking if it is duplicated
+        bool duplicated = false;
+        duplicated = isDuplicated(receivedName);
+        string duplicatedAnswer;
+        if (duplicated)
+            duplicatedAnswer ="duplicated";
+        else if (!duplicated)
+            duplicatedAnswer = "okey";
+
+        //if it is duplicated, the server will send client the output
+        while (duplicated){
+
+            duplicatedAnswer ="duplicated";
+            //sending the duplicated answer
+            send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
+            //receiving a new name
+            memset(buffer, 0, sizeof(buffer));
+            recv(client_socket, buffer, sizeof(buffer), 0);
+            receivedName = buffer;
+            duplicated = isDuplicated(receivedName);
+
+        }
+        duplicatedAnswer = "okey";
+        send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
+
+        //registering the new client
+        ClientUser newClient;
+        newClient.setClientName(receivedName);
+        newClient.setIsActive(true);
+        newClient.setPortNumber(portNumbers[client_count]);
+        client_count++;
+        AllClients.push_back(newClient);
+
+        //register part ended, now the application starts
+        //first the user should receive the special port number
+        //changing the communication according to new port number
+        int newPortNumber = portNumbers[client_count];
+        send(client_socket,(char*)&newPortNumber,sizeof(newPortNumber),0);
+
+
 
     //determining the index of the user for later use
     int indexOfUser = -1;
     for (int i = 0; i < AllClients.size(); i++) {
-        if (AllClients[i].getPortNumber() == portNumber) {
+        if (AllClients[i].getPortNumber() == newPortNumber) {
             indexOfUser = i;
         }
     }
 
+    //creating new sockets according to new port number
     SOCKET server_socket_for_client = socket(AF_INET, SOCK_STREAM, 0);
     sockaddr_in newServer_addr{};
     newServer_addr.sin_family = AF_INET;
-    newServer_addr.sin_port = htons(portNumber);
+    newServer_addr.sin_port = htons(newPortNumber);
     newServer_addr.sin_addr.s_addr = INADDR_ANY;
 
+    //binding and listening
     bind(server_socket_for_client, (sockaddr*)&newServer_addr, sizeof(newServer_addr));
     listen(server_socket_for_client, SOMAXCONN);
 
-    sockaddr_in client_addr;
-    int client_size = sizeof(client_addr);
+    //new client socket to communicate on the new port
     SOCKET client_socket_new = accept(server_socket_for_client, (sockaddr*)&client_addr, &client_size);
 
     //now the user is in the menu
+    memset(buffer, 0, sizeof(buffer));
     recv(client_socket_new, buffer, sizeof(buffer), 0);
     string action = buffer;
 
@@ -177,64 +227,63 @@ int main() {
     cout << "Server started!"<< endl;
 
 
-    while (true) {
+        while (true) {
 
-        sockaddr_in client_addr;
-        int client_size = sizeof(client_addr);
-        SOCKET client_socket = accept(server_socket, (sockaddr*)&client_addr, &client_size);
-
-        lock_guard<mutex> lock(clients_mutex);
-
-        //first it will send clients the number of clients to decide whether they can continue
-        send(client_socket, to_string(AllClients.size()).c_str(), to_string(AllClients.size()).length(), 0);
-
-        //receiving the username
-        string receivedName;
-        memset(buffer, 0, sizeof(buffer));
-        recv(client_socket, buffer, sizeof(buffer), 0);
-        receivedName = buffer;
-
-        //checking if it is duplicated
-        bool duplicated = false;
-        duplicated = isDuplicated(receivedName);
-        string duplicatedAnswer;
-        if (duplicated)
-            duplicatedAnswer ="duplicated";
-        else if (!duplicated)
-            duplicatedAnswer = "okey";
-
-        //cout << "received name : " << receivedName<<endl;
-        //cout <<"duplicated:" << duplicatedAnswer <<endl;
-
-        //if it is duplicated, the server will send client the output
-        while (duplicated){
-
-            duplicatedAnswer ="duplicated";
-            //sending the duplicated answer
-            send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
-            //receiving a new name
-            memset(buffer, 0, sizeof(buffer));
-            recv(client_socket, buffer, sizeof(buffer), 0);
-            receivedName = buffer;
-            duplicated = isDuplicated(receivedName);
-
-        }
-        duplicatedAnswer = "okey";
-        send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
-
-        //registering the new client
-        ClientUser newClient;
-        newClient.setClientName(receivedName);
-        newClient.setIsActive(true);
-        client_count++;
-        newClient.setPortNumber(8080 + client_count);
-        AllClients.push_back(newClient);
-
-        //register part ended, now the application starts
-        //first the user should receive the special port number
-        //changing the communication according to new port number
-        int portNumberToSend = 8080 + client_count;
-        send(client_socket,(char*)&portNumberToSend,sizeof(portNumberToSend),0);
+            //creating client socket
+            sockaddr_in client_addr{};
+            int client_size = sizeof(client_addr);
+            SOCKET client_socket = accept(server_socket, (sockaddr*)&client_addr, &client_size);
+            thread(handle_client_all, server_socket, client_socket,client_addr,client_size).detach();
+        // int client_size = sizeof(client_addr);
+        // SOCKET client_socket = accept(server_socket, (sockaddr*)&client_addr, &client_size);
+        //
+        // //first it will send clients the number of clients to decide whether they can continue
+        // send(client_socket, to_string(AllClients.size()).c_str(), to_string(AllClients.size()).length(), 0);
+        //
+        // //receiving the username
+        // string receivedName;
+        // memset(buffer, 0, sizeof(buffer));
+        // recv(client_socket, buffer, sizeof(buffer), 0);
+        // receivedName = buffer;
+        //
+        // //checking if it is duplicated
+        // bool duplicated = false;
+        // duplicated = isDuplicated(receivedName);
+        // string duplicatedAnswer;
+        // if (duplicated)
+        //     duplicatedAnswer ="duplicated";
+        // else if (!duplicated)
+        //     duplicatedAnswer = "okey";
+        //
+        // //if it is duplicated, the server will send client the output
+        // while (duplicated){
+        //
+        //     duplicatedAnswer ="duplicated";
+        //     //sending the duplicated answer
+        //     send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
+        //     //receiving a new name
+        //     memset(buffer, 0, sizeof(buffer));
+        //     recv(client_socket, buffer, sizeof(buffer), 0);
+        //     receivedName = buffer;
+        //     duplicated = isDuplicated(receivedName);
+        //
+        // }
+        // duplicatedAnswer = "okey";
+        // send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
+        //
+        // //registering the new client
+        // ClientUser newClient;
+        // newClient.setClientName(receivedName);
+        // newClient.setIsActive(true);
+        // client_count++;
+        // newClient.setPortNumber(portNumbers[client_count]);
+        // AllClients.push_back(newClient);
+        //
+        // //register part ended, now the application starts
+        // //first the user should receive the special port number
+        // //changing the communication according to new port number
+        // int portNumberToSend = portNumbers[client_count];
+        // send(client_socket,(char*)&portNumberToSend,sizeof(portNumberToSend),0);
         // closesocket(server_socket);
         //
         // server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -257,21 +306,6 @@ int main() {
         // tempMessage = buffer;
         // cout << "tempMessage : " << tempMessage<<endl;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-        clients.push_back(client_socket);
-        thread(handle_client, client_socket).detach();
     }
 
     WSACleanup();

@@ -7,29 +7,22 @@
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
-void receive_messages(SOCKET sock) {
-    char buffer[1024];
-    int bytes;
-    while ((bytes = recv(sock, buffer, sizeof(buffer), 0)) > 0) {
-        buffer[bytes] = '\0';
-        cout << "\n[Message]: " << buffer << endl;
-    }
-}
 
 int main() {
-    //standards
+
+    //creating socket
     WSADATA wsa;
     WSAStartup(MAKEWORD(2, 2), &wsa);
 
     SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-
     sockaddr_in server_addr{};
     server_addr.sin_family = AF_INET;
-    //8080
     server_addr.sin_port = htons(8080);
     inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
+
     connect(sock, (sockaddr*)&server_addr, sizeof(server_addr));
 
+    //server socket
     int server_size = sizeof(server_addr);
     SOCKET server_socket = accept(sock, (sockaddr*)&server_addr, &server_size);
 
@@ -39,11 +32,10 @@ int main() {
     memset(buffer, 0, sizeof(buffer));
     recv(sock, buffer, sizeof(buffer), 0);
 
-    string numberOfClients = string(buffer);
-    int numClients = stoi(numberOfClients);
-    if (numClients >= 3 ) {
+    string readyToStart = buffer;
+    if (readyToStart == "no" ) {
 
-        cout << "Cannot connect to the server there are 3 clients. Try another time!" << endl;
+        cout << "Cannot connect to the server, it is full. Try another time!" << endl;
         closesocket(sock);
         WSACleanup();
         return 0;
@@ -51,10 +43,10 @@ int main() {
 
     else{
 
-        cout<< "There are " << numClients << " clients. Connecting to server." << endl;
-    //getting the username from the user
+        cout<< "Welcome to server." << endl;
 
-    string name;
+        //getting the username from the user
+        string name;
     cout << endl;
     cout<<"Enter username: ";
     cin >> name;
@@ -90,7 +82,6 @@ int main() {
         //after registration, the new port number is received and the communication is changing according to the new port number
         int newPortNumber;
         recv(sock, (char*)&newPortNumber, sizeof(newPortNumber), 0);
-        //cout << "NEW PORT NUM: "<<newPortNumber << endl;
         cout<< endl;
         closesocket(sock);
         closesocket(server_socket);
@@ -108,27 +99,6 @@ int main() {
 
 
         //trying to communciate with server with new port
-        string tempMessage ="kanka port degisti haberin ola";
-        send(sock, tempMessage.c_str(), tempMessage.length(), 0);
-        //cout << tempMessage << endl;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         //menu opens up and the application starts
@@ -144,13 +114,6 @@ int main() {
 
 
 
-    thread(receive_messages, sock).detach();
-
-    string msg;
-    while (true) {
-        getline(cin, msg);
-        send(sock, msg.c_str(), msg.length(), 0);
-    }
 }
     closesocket(sock);
     WSACleanup();
