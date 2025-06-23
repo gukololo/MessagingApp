@@ -24,7 +24,6 @@ int main() {
 
     //connect(clientSocket, (sockaddr*)&server_addr, sizeof(server_addr));
     connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
-    cout << "connect" << endl;
 
     //then checking if it is available to connect
     char buffer[1024];
@@ -99,7 +98,50 @@ int main() {
 
             send(clientSocket, action.c_str(), action.length(), 0);
 
-            //displaying all the active clients
+            //2: choosing users to send message
+            if (action == "2") {
+                string destinations;
+                //receiving all the active client names and displaying them
+                memset(buffer, 0, sizeof(buffer));
+                recv(clientSocket, buffer, sizeof(buffer), 0);
+                string activeClientNames = buffer;
+
+                //dividing the received names string and displaying
+                vector<string> clientNames;
+                stringstream ss(activeClientNames);
+                string singleName;
+
+                while (getline(ss, singleName, ' ')) {
+                    clientNames.push_back(singleName);
+                }
+                for (int i = 0 ; i < clientNames.size(); i++) {
+                    cout << i+1 <<"."<< clientNames[i] << endl;
+                }
+
+                //taking the input from the user
+                cout << "Who do you want to message? Enter as numbers with spaces: " <<endl;
+                cin >> destinations;
+                send(clientSocket, destinations.c_str(), destinations.length(), 0);
+
+                //receiving answer for validation
+                memset(buffer, 0, sizeof(buffer));
+                recv(clientSocket, buffer, sizeof(buffer), 0);
+                string validationAnswer = buffer;
+
+                //if the input is not valid, taking input until it is valid
+                while (validationAnswer == "no") {
+                    cout <<"Invalid input try again: "<<endl;
+                    cin >> destinations;
+                    send(clientSocket, destinations.c_str(), destinations.length(), 0);
+                    memset(buffer, 0, sizeof(buffer));
+                    recv(clientSocket, buffer, sizeof(buffer), 0);
+                    validationAnswer = buffer;
+                }
+                cout << "Your message destinations are set successfully !" << endl;
+            }
+
+
+            //4: displaying all the active clients
             if (action == "4") {
 
                 //receiving all the names of clients

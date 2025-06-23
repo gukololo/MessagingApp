@@ -6,7 +6,7 @@ ClientUser::ClientUser() {
     clientName = "";
     portNumber = -1;
     isActive = false;
-    destinations = vector<string>();
+    destinations = vector<int>();
 }
 
 //getters
@@ -19,15 +19,14 @@ int ClientUser::getPortNumber() const {
 bool ClientUser::getIsActive() const {
     return isActive;
 }
-vector<string> ClientUser::getDestinations() const {
+vector<int> ClientUser::getDestinations() const {
     return destinations;
 }
 //setters
 void ClientUser::setClientName(const string &s) {clientName = s;}
 void ClientUser::setPortNumber(const int i) {portNumber = i;}
 void ClientUser::setIsActive(const bool b) {isActive = b;}
-void ClientUser::addDestination(const string &s) {destinations.push_back(s);}
-
+void ClientUser::setDestinations(const vector<int> &d) {destinations = d;}
 
 
 

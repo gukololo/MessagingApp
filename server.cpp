@@ -16,6 +16,51 @@ vector<ClientUser> AllClients;
 int client_count = 0;
 
 /**
+ * this method is used for validation in the second option where the user inputs indexes of destinations
+ * if the output is true, it adds the destinations in the ClientUser object from the storage
+ * @param destinations input from user
+ * @return if valid or not
+ */
+bool isDestinationsValid(const string destinations,const SOCKET client_socket) {
+
+    //dividing the received names string and displaying
+    vector<string> allDestinations;
+    stringstream ss(destinations);
+    string singleDestination;
+
+    while (getline(ss, singleDestination, ' ')) {
+        //checks if the index already exists
+        if (find(allDestinations.begin(), allDestinations.end(), singleDestination) == allDestinations.end() )
+        allDestinations.push_back(singleDestination);
+    }
+
+    //checking if the inputs are valid
+    for (int i = 0; i < allDestinations.size(); i++) {
+        if ((stoi(allDestinations[i]) > client_count) || (stoi(allDestinations[i]) <= 0)) {
+            return false;
+        }
+    }
+
+    //creating the true int vector and adding it to the true ClientUser object in the storage
+    vector <int> indexesOfDestinations;
+    for (int i = 0; i < allDestinations.size(); i++) {
+        indexesOfDestinations.push_back(stoi(allDestinations[i]) - 1);
+    }
+    //determining the index from the storage
+    int indexOfTheUser = 0;
+    for (int i = 0; i < allClientSockets.size(); i++) {
+        if (allClientSockets[i] == client_socket) {
+            indexOfTheUser = i;
+        }
+    }
+    //setting the ClientUser object's destinations
+    AllClients[indexOfTheUser].setDestinations(indexesOfDestinations);
+    return true;
+
+
+
+}
+/**
  * method to check whether a name exists in the clients storage
  * @param name given name
  * @return if exists or not
@@ -114,27 +159,32 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
     }
     //choosing destinations
     else if (action == "2") {
-        string destinations;
-        string feedback;
+
+        //sending user the names
+        sendClientAllUserNames(client_socket);
+
         memset(buffer, 0, sizeof(buffer));
         recv(client_socket, buffer, sizeof(buffer), 0);
-        destinations = buffer;
+        string destinations = buffer;
 
-         stringstream ss(destinations);
-         string singleDest;
+        //checking if it is valid, this method adds destinations to storage if it is valid
+        bool isValid = isDestinationsValid(destinations,client_socket);
+        string destinationsValid;
 
-         while (getline(ss, singleDest, ' ')) {
-
-             if (!isDuplicated(singleDest)) {
-                feedback = "notOkey";
-                 send(client_socket, feedback.c_str(), feedback.length(), 0);
-
-
-             }
-             //(AllClients[indexOfUser].getDestinations()).push_back(singleDest);
+        //if the input is not valid, server repeats the process until the input is valid
+        while (!isValid) {
+            destinationsValid = "no";
+            send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
+            memset(buffer, 0, sizeof(buffer));
+            recv(client_socket, buffer, sizeof(buffer), 0);
+            destinations = buffer;
+            isValid = isDestinationsValid(destinations,client_socket);
         }
+        //the input is valid, the server gives feedback
+        destinationsValid = "yes";
+        send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
 
-    }
+        }
     //checking unseen messages
     else if (action == "3") {
     }
