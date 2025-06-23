@@ -8,9 +8,12 @@
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
-
 void displayMessages(SOCKET client) {
-
+    char buffer [1024];
+    memset(buffer, 0, sizeof(buffer));
+    recv(client, buffer, sizeof(buffer), 0);
+    string msg = buffer;
+    cout << msg << endl;
 }
 
 int main() {
@@ -100,8 +103,15 @@ int main() {
 
             send(clientSocket, action.c_str(), action.length(), 0);
 
-            while (action == "1") {
-
+            //1: Messaging Mode
+            if (action == "1" ) {
+                cout << "Opening message mode. Type /exit to exit." << endl;
+                string msg = "";
+                while (action == "1" && msg != "/exit") {
+                    thread(displayMessages, clientSocket).detach();
+                    getline(cin, msg);
+                    send(clientSocket, msg.c_str(), msg.length(), 0);
+                }
             }
 
             //2: choosing users to send message
@@ -177,6 +187,11 @@ int main() {
                 }
 
             }
+
+            cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
+            cin >> action;
+            send(clientSocket, action.c_str(), action.length(), 0);
+
 
         }
 

@@ -6,7 +6,7 @@
 #include <string>
 #include <sstream>
 #include "ClientUser.h"
-#include "Message.h"
+#include "Message.cpp"
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
@@ -128,119 +128,161 @@ void sendClientAllUserNames(SOCKET client) {
  * @param server_socket
  */
 void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in client_addr,int client_size) {
+    //a char array for receiving messages
+    char buffer [1024];
 
-        //a char array for receiving messages
-        char buffer [1024];
+    //first it will send feedback to clients to decide whether they can continue
+    string readyToStart;
+    if (client_count >= 3) {
+        readyToStart = "no";
+    }
+    else {
+        readyToStart = "yes";
+    }
+    send(client_socket, readyToStart.c_str(), readyToStart.length(), 0);
 
-        //first it will send feedback to clients to decide whether they can continue
-        string readyToStart;
-        if (client_count >= 3) {
-            readyToStart = "no";
-        }
-        else {
-            readyToStart = "yes";
-        }
-        send(client_socket, readyToStart.c_str(), readyToStart.length(), 0);
+    //receiving the username
+    string receivedName;
+    memset(buffer, 0, sizeof(buffer));
+    recv(client_socket, buffer, sizeof(buffer), 0);
+    receivedName = buffer;
 
-        //receiving the username
-        string receivedName;
+    //checking if it is duplicated
+    bool duplicated = isDuplicated(receivedName);
+    string duplicatedAnswer;
+
+    //if it is duplicated, the server will send client the output
+    while (duplicated){
+
+        duplicatedAnswer ="duplicated";
+        //sending the duplicated answer
+        send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
+
+        //receiving a new name
         memset(buffer, 0, sizeof(buffer));
         recv(client_socket, buffer, sizeof(buffer), 0);
         receivedName = buffer;
+        duplicated = isDuplicated(receivedName);
 
-        //checking if it is duplicated
-        bool duplicated = isDuplicated(receivedName);
-        string duplicatedAnswer;
+    }
 
-        //if it is duplicated, the server will send client the output
-        while (duplicated){
+    //if the username is not a duplicate we send this feedback to user
+    duplicatedAnswer = "okey";
+    send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
 
-            duplicatedAnswer ="duplicated";
-            //sending the duplicated answer
-            send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
+    //registering the new client
+    ClientUser newClient;
+    newClient.setClientName(receivedName);
+    newClient.setIsActive(true);
 
-            //receiving a new name
-            memset(buffer, 0, sizeof(buffer));
-            recv(client_socket, buffer, sizeof(buffer), 0);
-            receivedName = buffer;
-            duplicated = isDuplicated(receivedName);
+    client_count++;
+    AllClients.push_back(newClient);
+    allClientSockets.push_back(client_socket);
 
-        }
+    cout << "Client " <<receivedName << " connected."  << endl;
 
-        //if the username is not a duplicate we send this feedback to user
-        duplicatedAnswer = "okey";
-        send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
-
-        //registering the new client
-        ClientUser newClient;
-        newClient.setClientName(receivedName);
-        newClient.setIsActive(true);
-
-        client_count++;
-        AllClients.push_back(newClient);
-        allClientSockets.push_back(client_socket);
-
-        cout << "Client " <<receivedName << " connected."  << endl;
 
 
     //now the user is in the menu
     memset(buffer, 0, sizeof(buffer));
     recv(client_socket, buffer, sizeof(buffer), 0);
     string action = buffer;
+    while (action != "6"){
+        //messaging mode
+        if (action == "1") {
 
-    //messaging mode
-    if (action == "1") {
+            //determining client index
+            int clientIndex = 0 ;
+            for (int i = 0; i < allClientSockets.size(); i++) {
+                if (allClientSockets[i] == client_socket) {
+                    clientIndex = i;
+                }
+            }
 
-    }
-    //choosing destinations
-    else if (action == "2") {
+            //setting the messaging mode
+            AllClients[clientIndex].setInMessageMode(true);
+            string msg;
+            while (msg != "/exit") {
 
-        //sending user the names
-        sendClientAllUserNames(client_socket);
+                //receiving the message
+                memset(buffer, 0, sizeof(buffer));
+                recv(client_socket, buffer, sizeof(buffer), 0);
+                msg = buffer;
+
+                for (int i = 0 ; i < AllClients[clientIndex].getDestinations().size(); i++ ) {
+
+                    //storing message
+                    int index = AllClients[clientIndex].getDestinations()[i];
+                    Message newMessage;
+                    newMessage.setDestination(AllClients[index].getClientName());
+                    newMessage.setSender(AllClients[clientIndex].getClientName());
+                    newMessage.setMessage(msg);
+                    AllMessages.push_back(newMessage);
+                    if (!AllClients[index].getInMessageMode()) {
+                        allUnseenMessages.push_back(newMessage);
+                    }
+                    else {
+                        string messageToSend = newMessage.getSender() + ": "+ newMessage.getMessage();
+                        cout<< newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
+                        send(allClientSockets[index], messageToSend.c_str(), messageToSend.length(), 0);
+                    }
+
+                }
+            }
+            AllClients[clientIndex].setInMessageMode(false);
+
+        }
+        //choosing destinations
+        else if (action == "2") {
+
+            //sending user the names
+            sendClientAllUserNames(client_socket);
+
+            memset(buffer, 0, sizeof(buffer));
+            recv(client_socket, buffer, sizeof(buffer), 0);
+            string destinations = buffer;
+
+            //checking if it is valid, this method adds destinations to storage if it is valid
+            bool isValid = isDestinationsValid(destinations,client_socket);
+            string destinationsValid;
+
+            //if the input is not valid, server repeats the process until the input is valid
+            while (!isValid) {
+                destinationsValid = "no";
+                send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
+                memset(buffer, 0, sizeof(buffer));
+                recv(client_socket, buffer, sizeof(buffer), 0);
+                destinations = buffer;
+                isValid = isDestinationsValid(destinations,client_socket);
+            }
+            //the input is valid, the server gives feedback
+            destinationsValid = "yes";
+            send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
+
+        }
+        //checking unseen messages
+        else if (action == "3") {
+            sendUnseenMessagesToUser(client_socket);
+        }
+        //see all available users
+        else if (action == "4") {
+            sendClientAllUserNames(client_socket);
+        }
+        //looking messaging history
+        else if (action == "5") {
+
+        }
+        //disconnect
+        else if (action == "6") {
+
+        }
 
         memset(buffer, 0, sizeof(buffer));
         recv(client_socket, buffer, sizeof(buffer), 0);
-        string destinations = buffer;
-
-        //checking if it is valid, this method adds destinations to storage if it is valid
-        bool isValid = isDestinationsValid(destinations,client_socket);
-        string destinationsValid;
-
-        //if the input is not valid, server repeats the process until the input is valid
-        while (!isValid) {
-            destinationsValid = "no";
-            send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
-            memset(buffer, 0, sizeof(buffer));
-            recv(client_socket, buffer, sizeof(buffer), 0);
-            destinations = buffer;
-            isValid = isDestinationsValid(destinations,client_socket);
-        }
-        //the input is valid, the server gives feedback
-        destinationsValid = "yes";
-        send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
-
-        }
-    //checking unseen messages
-    else if (action == "3") {
-        sendUnseenMessagesToUser(client_socket);
-    }
-    //see all available users
-    else if (action == "4") {
-        sendClientAllUserNames(client_socket);
-    }
-    //looking messaging history
-    else if (action == "5") {
+        action = buffer;
 
     }
-    //disconnect
-    else if (action == "6") {
-
-    }
-
-
 }
-
-
 
 int main() {
     char buffer[1024];
