@@ -5,7 +5,8 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include "ClientUser.cpp"
+#include "ClientUser.h"
+#include "Message.h"
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
@@ -13,15 +14,49 @@ using namespace std;
 // Client storage
 vector<SOCKET> allClientSockets;
 vector<ClientUser> AllClients;
+vector<Message> AllMessages;
+vector<Message>allUnseenMessages;
 int client_count = 0;
 
+/**
+ * this method sends  all unseen messages to given user
+ * @param client_socket client to send
+ * @return if there are no unseen messages it returns false else it returns true
+ */
+void sendUnseenMessagesToUser(SOCKET client_socket) {
+
+    //determining the index
+    int indexOfTheSocket = 0;
+    for (int i = 0; i < allClientSockets.size(); i++) {
+        if (allClientSockets[i] == client_socket) {
+            indexOfTheSocket = i;
+        }
+    }
+    string destinationName = AllClients[indexOfTheSocket].getClientName();
+
+    //creating the messages string to send
+    string messages;
+    for (int i = 0 ; i < allUnseenMessages.size(); ) {
+        if (allUnseenMessages[i].getDestination() == destinationName) {
+            messages += allUnseenMessages[i].getSender() +": "+ allUnseenMessages[i].getMessage() + "\n";
+            allUnseenMessages.erase(allUnseenMessages.begin() + i);
+        }
+        else {
+            i++;
+        }
+    }
+    if (messages.empty()) {
+        messages = "/nothing";
+        send(client_socket, messages.c_str(), messages.length(), 0);
+    }
+}
 /**
  * this method is used for validation in the second option where the user inputs indexes of destinations
  * if the output is true, it adds the destinations in the ClientUser object from the storage
  * @param destinations input from user
  * @return if valid or not
  */
-bool isDestinationsValid(const string destinations,const SOCKET client_socket) {
+bool isDestinationsValid(const string &destinations,const SOCKET client_socket) {
 
     //dividing the received names string and displaying
     vector<string> allDestinations;
@@ -187,6 +222,7 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
         }
     //checking unseen messages
     else if (action == "3") {
+        sendUnseenMessagesToUser(client_socket);
     }
     //see all available users
     else if (action == "4") {

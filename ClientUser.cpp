@@ -1,5 +1,5 @@
-#include "ClientUser.h"
 #include <iostream>
+#include "ClientUser.h"
 using namespace std;
 
 ClientUser::ClientUser() {

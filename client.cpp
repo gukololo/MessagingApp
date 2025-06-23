@@ -9,6 +9,10 @@
 using namespace std;
 
 
+void displayMessages(SOCKET client) {
+
+}
+
 int main() {
 
     //creating client socket
@@ -40,12 +44,11 @@ int main() {
     }
 
     else{
-
+        cout  << endl;
         cout<< "Welcome to server." << endl;
 
         //getting the username from the user
         string name;
-    cout << endl;
     cout<<"Enter username: ";
     cin >> name;
 
@@ -57,7 +60,7 @@ int main() {
     recv(clientSocket, buffer, sizeof(buffer), 0);
     string duplicatedAnswer = string(buffer);
 
-        //if duplicated taking user name input again
+        //if duplicated taking username input again
     while (duplicatedAnswer == "duplicated") {
         cout << endl;
         cout<<"This username already exists. Try again!" << endl;
@@ -82,7 +85,6 @@ int main() {
         cout << "Connected to server!" << endl;
 
         //after registration, the new port number is received and the communication is changing according to the new port number
-
         //menu opens up and the application starts
         string action;
         cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
@@ -90,13 +92,17 @@ int main() {
         //if the input is invalid
         while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6" ) {
             cout << "Your choice is invalid. Please enter a valid action (1-2-3-4)!" << endl;
-            cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
+            cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
             cin >> action;
         }
 
         while (action == "1" || action == "2" || action == "3" || action == "4" || action == "5" || action == "6" ) {
 
             send(clientSocket, action.c_str(), action.length(), 0);
+
+            while (action == "1") {
+
+            }
 
             //2: choosing users to send message
             if (action == "2") {
@@ -140,7 +146,16 @@ int main() {
                 cout << "Your message destinations are set successfully !" << endl;
             }
 
+            //3: displaying unseen messages
+            if (action == "3") {
+                memset(buffer, 0, sizeof(buffer));
+                recv(clientSocket, buffer, sizeof(buffer), 0);
+                string messagesToDisplay = buffer;
+                if (messagesToDisplay == "/nothing")
+                    cout<<"No unseen messages found!"<<endl;
+                else{cout << messagesToDisplay << endl;}
 
+            }
             //4: displaying all the active clients
             if (action == "4") {
 
@@ -164,10 +179,6 @@ int main() {
             }
 
         }
-
-
-
-
 
 }
     closesocket(clientSocket);

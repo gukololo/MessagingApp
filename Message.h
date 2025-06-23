@@ -1,6 +1,3 @@
-//
-// Created by gurka on 17.06.2025.
-//
 #ifndef MESSAGE_H
 #define MESSAGE_H
 

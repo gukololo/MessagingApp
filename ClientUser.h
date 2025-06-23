@@ -1,5 +1,5 @@
-#ifndef CLIENT_H
-#define CLIENT_H
+#ifndef CLIENTUSER_H
+#define CLIENTUSER_H
 #include <string>
 #include <vector>
 using namespace std;
@@ -22,4 +22,4 @@ private:
     int portNumber;
     bool isActive;
 };
-#endif //CLIENT_H
+#endif
