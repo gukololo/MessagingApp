@@ -13,10 +13,25 @@ using namespace std;
 
 // Client storage
 vector<SOCKET> allClientSockets;
-vector<ClientUser> AllClients;
+vector<ClientUser> allClientObjects;
 vector<Message> AllMessages;
 vector<Message>allUnseenMessages;
 int client_count = 0;
+
+
+
+int getClientIndex(SOCKET client) {
+    for (int i = 0; i < allClientSockets.size(); i++) {
+        if (allClientSockets[i] == client) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+
+
 
 /**
  * this method sends  all unseen messages to given user
@@ -24,7 +39,6 @@ int client_count = 0;
  * @return if there are no unseen messages it returns false else it returns true
  */
 void sendUnseenMessagesToUser(SOCKET client_socket) {
-
     //determining the index
     int indexOfTheSocket = 0;
     for (int i = 0; i < allClientSockets.size(); i++) {
@@ -32,7 +46,7 @@ void sendUnseenMessagesToUser(SOCKET client_socket) {
             indexOfTheSocket = i;
         }
     }
-    string destinationName = AllClients[indexOfTheSocket].getClientName();
+    string destinationName = allClientObjects[indexOfTheSocket].getClientName();
 
     //creating the messages string to send
     string messages;
@@ -89,7 +103,7 @@ bool isDestinationsValid(const string &destinations,const SOCKET client_socket) 
         }
     }
     //setting the ClientUser object's destinations
-    AllClients[indexOfTheUser].setDestinations(indexesOfDestinations);
+    allClientObjects[indexOfTheUser].setDestinations(indexesOfDestinations);
     return true;
 
 
@@ -101,8 +115,8 @@ bool isDestinationsValid(const string &destinations,const SOCKET client_socket) 
  * @return if exists or not
  */
 bool isDuplicated(const string &name) {
-    for (int i = 0; i < AllClients.size(); i++) {
-        if (AllClients[i].getClientName() == name) {
+    for (int i = 0; i < allClientObjects.size(); i++) {
+        if (allClientObjects[i].getClientName() == name) {
             return true;
         }
     }
@@ -117,8 +131,8 @@ bool isDuplicated(const string &name) {
  */
 void sendClientAllUserNames(SOCKET client) {
     string usernames;
-    for (int i = 0; i < AllClients.size(); i++) {
-        usernames += AllClients[i].getClientName() + " ";
+    for (int i = 0; i < allClientObjects.size(); i++) {
+        usernames += allClientObjects[i].getClientName() + " ";
     }
     send(client,usernames.c_str(), usernames.length(), 0);
 }
@@ -176,7 +190,7 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
     newClient.setIsActive(true);
 
     client_count++;
-    AllClients.push_back(newClient);
+    allClientObjects.push_back(newClient);
     allClientSockets.push_back(client_socket);
 
     cout << "Client " <<receivedName << " connected."  << endl;
@@ -188,48 +202,47 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
     recv(client_socket, buffer, sizeof(buffer), 0);
     string action = buffer;
     while (action != "6"){
+
         //messaging mode
         if (action == "1") {
 
             //determining client index
-            int clientIndex = 0 ;
-            for (int i = 0; i < allClientSockets.size(); i++) {
-                if (allClientSockets[i] == client_socket) {
-                    clientIndex = i;
-                }
-            }
+            int clientIndex = getClientIndex(client_socket) ;
 
             //setting the messaging mode
-            AllClients[clientIndex].setInMessageMode(true);
+            allClientObjects[clientIndex].setInMessageMode(true);
+
+            //receiving the message
             string msg;
+            memset(buffer, 0, sizeof(buffer));
+            recv(client_socket, buffer, sizeof(buffer), 0);
+            msg = buffer;
             while (msg != "/exit") {
 
-                //receiving the message
-                memset(buffer, 0, sizeof(buffer));
-                recv(client_socket, buffer, sizeof(buffer), 0);
-                msg = buffer;
-
-                for (int i = 0 ; i < AllClients[clientIndex].getDestinations().size(); i++ ) {
+                for (int i = 0 ; i < allClientObjects[clientIndex].getDestinations().size(); i++ ) {
 
                     //storing message
-                    int index = AllClients[clientIndex].getDestinations()[i];
+                    int destinationIndex = allClientObjects[clientIndex].getDestinations()[i];
                     Message newMessage;
-                    newMessage.setDestination(AllClients[index].getClientName());
-                    newMessage.setSender(AllClients[clientIndex].getClientName());
+                    newMessage.setDestination(allClientObjects[destinationIndex].getClientName());
+                    newMessage.setSender(allClientObjects[clientIndex].getClientName());
                     newMessage.setMessage(msg);
                     AllMessages.push_back(newMessage);
-                    if (!AllClients[index].getInMessageMode()) {
+                    if (!allClientObjects[destinationIndex].getInMessageMode()) {
                         allUnseenMessages.push_back(newMessage);
                     }
                     else {
                         string messageToSend = newMessage.getSender() + ": "+ newMessage.getMessage();
                         cout<< newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
-                        send(allClientSockets[index], messageToSend.c_str(), messageToSend.length(), 0);
+                        send(allClientSockets[destinationIndex], messageToSend.c_str(), messageToSend.length(), 0);
                     }
 
                 }
+                memset(buffer, 0, sizeof(buffer));
+                recv(client_socket, buffer, sizeof(buffer), 0);
+                msg = buffer;
             }
-            AllClients[clientIndex].setInMessageMode(false);
+            allClientObjects[clientIndex].setInMessageMode(false);
 
         }
         //choosing destinations
