@@ -13,22 +13,20 @@ using namespace std;
  * @param client client socket to display
  */
 void receiveAndDisplayUnseenMessages(SOCKET client) {
-    string msg;
     char buffer[1024];
-
-    //taking the first message
-    memset(buffer, 0, sizeof(buffer));
-    recv(client, buffer, sizeof(buffer), 0);
-    msg = buffer;
-    while (msg != "/-done-/") {
-        //display
-        cout << msg << endl;
-        //update
+    while (true) {
+        string msg;
         memset(buffer, 0, sizeof(buffer));
         recv(client, buffer, sizeof(buffer), 0);
-        msg = buffer;
-    }
+        msg = string(buffer);
+
+        if (msg != "/-done-/") {
+            cout << msg << endl;
+        }
+        else{return;}
+   }
 }
+
 
 
 /**
@@ -186,7 +184,7 @@ int main() {
 
             //3: displaying unseen messages
             if (action == "3") {
-              receiveAndDisplayUnseenMessages(clientSocket);
+            receiveAndDisplayUnseenMessages(clientSocket);
             }
             //4: displaying all the active clients
             if (action == "4") {

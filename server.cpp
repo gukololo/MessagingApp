@@ -43,27 +43,49 @@ void sendUnseenMessagesToUser(SOCKET client_socket) {
     int indexOfTheSocket = getClientIndex(client_socket);
     string destinationName = allClientObjects[indexOfTheSocket].getClientName();
 
-    //creating the message string to send
-    string messageToSend;
-    int count = 0;
-    for (int i = 0 ; i < allUnseenMessages.size(); ) {
-        if (allUnseenMessages[i].getDestination() == destinationName) {
-            messageToSend= allUnseenMessages[i].getSender() +": "+ allUnseenMessages[i].getMessage();
-            send(client_socket,messageToSend.c_str(), messageToSend.length(), 0);
-            allUnseenMessages.erase(allUnseenMessages.begin() + i);
-            count++;
-        }
-        else {
-            i++;
-        }
-    }
+     //creating the message string to send
+     string messageToSend;
+     int count = 0;
+     for (int i = 0 ; i < allUnseenMessages.size(); ) {
+         if (allUnseenMessages[i].getDestination() == destinationName) {
+             messageToSend= allUnseenMessages[i].getSender() +": "+ allUnseenMessages[i].getMessage();
+             send(client_socket,messageToSend.c_str(), messageToSend.length(), 0);
+             allUnseenMessages.erase(allUnseenMessages.begin() + i);
+             count++;
+         }
+         else {
+             i++;
+         }
+     }
 
-    if (count == 0) {
-        messageToSend= "There are no unseen messages!";
-        send(client_socket, messageToSend.c_str(), messageToSend.length(), 0);
-    }
-    messageToSend = "/-done-/";
-    send(client_socket, messageToSend.c_str(), messageToSend.length(), 0);
+     if (count == 0) {
+         messageToSend= "There are no unseen messages!";
+         send(client_socket, messageToSend.c_str(), messageToSend.length(), 0);
+     }
+     messageToSend = "/-done-/";
+     send(client_socket, messageToSend.c_str(), messageToSend.length(), 0);
+
+
+
+//     int count = 0 ;
+//     for (int i = 0; i < allUnseenMessages.size(); i++) {
+//     if (allUnseenMessages[i].getDestination() == destinationName) {
+//         count++;
+//     }
+// }
+//
+//     for (int i = 0, c = 0 ; i < allUnseenMessages.size() && c < count; i++) {
+//
+//         if (allUnseenMessages[i].getDestination() == destinationName) {
+//
+//             string msgToSend = allUnseenMessages[i].getSender() + ": "+ allUnseenMessages[i].getMessage();
+//             send(client_socket, msgToSend.c_str(), msgToSend.size(), 0);
+//             c++;
+//         }
+//
+//     }
+
+
 }
 /**
  * this method is used for validation in the second option where the user inputs indexes of destinations
