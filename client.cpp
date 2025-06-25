@@ -8,6 +8,11 @@
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
+
+void printMenu() {
+        cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
+}
+
 /**
  * this method is for receiving and displaying unseen messages in the third option
  * @param client client socket to display
@@ -66,6 +71,9 @@ void displayMessages(SOCKET client) {
 
 int main() {
 
+     //for receiving strings from server
+     char buffer[1024];
+
     //creating client socket
     WSADATA wsa;
     WSAStartup(MAKEWORD(2, 2), &wsa);
@@ -80,12 +88,10 @@ int main() {
     connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
     //then checking if it is available to connect
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    recv(clientSocket, buffer, sizeof(buffer), 0);
+    int readyToStart;
+    recv(clientSocket, (char*)&readyToStart, sizeof(readyToStart), 0);
 
-    string readyToStart = buffer;
-    if (readyToStart == "no" ) {
+    if (readyToStart == 0  ) {
 
         cout << "Cannot connect to the server, it is full. Try another time!" << endl;
         closesocket(clientSocket);
@@ -99,18 +105,18 @@ int main() {
 
         //getting the username from the user
         string name;
-    cout<<"Enter username: ";
-    getline(cin, name);
-    //sending the name we choose and sending it to the server
-    send(clientSocket, name.c_str(), name.length(), 0);
+        cout<<"Enter username: ";
+        getline(cin, name);
+
+        //sending the name we choose and sending it to the server
+        send(clientSocket, name.c_str(), name.length(), 0);
 
         //receiving answer that shows if duplicated
-    memset(buffer, 0, sizeof(buffer));
-    recv(clientSocket, buffer, sizeof(buffer), 0);
-    string duplicatedAnswer = string(buffer);
+        int isDuplicated;
+        recv(clientSocket, (char*)&isDuplicated, sizeof(isDuplicated), 0);
 
         //if duplicated taking username input again
-    while (duplicatedAnswer == "duplicated") {
+        while (isDuplicated == 1) {
         cout << endl;
         cout<<"This username already exists. Try again!" << endl;
         cout<<"Enter username: ";
@@ -120,11 +126,9 @@ int main() {
         send(clientSocket, name.c_str(), name.length(), 0);
 
         //taking duplicated answer again
-        memset(buffer, 0, sizeof(buffer));
-        recv(clientSocket, buffer, sizeof(buffer), 0);
-        duplicatedAnswer = string(buffer);
+        recv(clientSocket, (char*)&isDuplicated, sizeof(isDuplicated), 0);
     }
-        if (duplicatedAnswer == "okey") {
+        if (isDuplicated == 0) {
             cout <<"You are registered successfully!"<< endl;
         }
 
@@ -133,19 +137,20 @@ int main() {
         cout << endl;
         //after registration, the new port number is received and the communication is changing according to the new port number
         //menu opens up and the application starts
+
         string action;
-        cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
+        printMenu();
         getline(cin, action);
 
         //if the input is invalid
         while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6" ) {
-            cout << "Your choice is invalid. Please enter a valid action (1-2-3-4)!" << endl;
-            cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
+            cout << "Your choice is invalid. Please enter a valid action (1-2-3-4-5-6)!" << endl;
+            printMenu();
             getline(cin, action);
         }
 
 
-            send(clientSocket, action.c_str(), action.length(), 0);
+        send(clientSocket, action.c_str(), action.length(), 0);
 
         while (action == "1" || action == "2" || action == "3" || action == "4" || action == "5" || action == "6" ) {
 
@@ -231,8 +236,8 @@ int main() {
 
             }
 
-            cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
-            cin >> action;
+            printMenu();
+            getline(cin, action);
             send(clientSocket, action.c_str(), action.length(), 0);
 
 

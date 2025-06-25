@@ -169,14 +169,14 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
     char buffer [1024];
 
     //first it will send feedback to clients to decide whether they can continue
-    string readyToStart;
+    int readyToStart;
     if (client_count >= 3) {
-        readyToStart = "no";
+        readyToStart = 0;
     }
     else {
-        readyToStart = "yes";
+        readyToStart = 1;
     }
-    send(client_socket, readyToStart.c_str(), readyToStart.length(), 0);
+    send(client_socket, (char*)&readyToStart, sizeof(readyToStart), 0);
 
     //receiving the username
     string receivedName;
@@ -186,14 +186,14 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
 
     //checking if it is duplicated
     bool duplicated = isDuplicated(receivedName);
-    string duplicatedAnswer;
+    int duplicatedAnswer;
 
     //if it is duplicated, the server will send client the output
     while (duplicated){
 
-        duplicatedAnswer ="duplicated";
+        duplicatedAnswer = 1;
         //sending the duplicated answer
-        send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
+        send(client_socket, (char*)&duplicatedAnswer, sizeof(duplicatedAnswer), 0);
 
         //receiving a new name
         memset(buffer, 0, sizeof(buffer));
@@ -204,8 +204,8 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
     }
 
     //if the username is not a duplicate we send this feedback to user
-    duplicatedAnswer = "okey";
-    send(client_socket, duplicatedAnswer.c_str(), duplicatedAnswer.length(), 0);
+    duplicatedAnswer = 0;
+    send(client_socket, (char*)&duplicatedAnswer, sizeof(duplicatedAnswer), 0);
 
     //registering the new client
     ClientUser newClient;
@@ -251,6 +251,7 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
                     newMessage.setSender(allClientObjects[clientIndex].getClientName());
                     newMessage.setMessage(msg);
                     AllMessages.push_back(newMessage);
+                    //if the destination is not in the messaging mode, the message is stored in unseen messages vector
                     if (!allClientObjects[destinationIndex].getInMessageMode()) {
                         allUnseenMessages.push_back(newMessage);
                         cout<<"Unseen message: " << newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
