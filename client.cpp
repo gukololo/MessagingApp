@@ -12,21 +12,41 @@ using namespace std;
  * this method is for receiving and displaying unseen messages in the third option
  * @param client client socket to display
  */
-void receiveAndDisplayUnseenMessages(SOCKET client) {
+// void receiveAndDisplayUnseenMessages(SOCKET client) {
+//     char buffer[1024];
+//     while (true) {
+//         string msg;
+//         memset(buffer, 0, sizeof(buffer));
+//         recv(client, buffer, sizeof(buffer), 0);
+//         msg = string(buffer);
+//
+//         if (msg != "/-done-/") {
+//             cout << msg << endl;
+//         }
+//         else{return;}
+//    }
+// }
+ void receiveAndDisplayUnseenMessages(SOCKET client) {
     char buffer[1024];
+    string accumulated;
+
     while (true) {
-        string msg;
         memset(buffer, 0, sizeof(buffer));
-        recv(client, buffer, sizeof(buffer), 0);
-        msg = string(buffer);
+        int bytes = recv(client, buffer, sizeof(buffer), 0);
+        if (bytes <= 0) break;
 
-        if (msg != "/-done-/") {
-            cout << msg << endl;
+        accumulated += string(buffer, bytes);
+
+        size_t pos;
+        while ((pos = accumulated.find('\n')) != string::npos) {
+            string line = accumulated.substr(0, pos);
+            accumulated.erase(0, pos + 1);
+
+            if (line == "/-done-/") return;
+            cout << line << endl;
         }
-        else{return;}
-   }
+    }
 }
-
 
 
 /**
@@ -184,7 +204,10 @@ int main() {
 
             //3: displaying unseen messages
             if (action == "3") {
-            receiveAndDisplayUnseenMessages(clientSocket);
+           // receiveAndDisplayUnseenMessages(clientSocket);
+                thread t(receiveAndDisplayUnseenMessages, clientSocket);
+                t.join(); // wait until done
+                cout << endl;
             }
             //4: displaying all the active clients
             if (action == "4") {
