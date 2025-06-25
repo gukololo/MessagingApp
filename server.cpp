@@ -87,6 +87,46 @@ void sendUnseenMessagesToUser(SOCKET client_socket) {
     send(client_socket, result.c_str(), result.length(), 0);
 }
 
+void sendUnseenMessagesToUserVer2(SOCKET client_socket) {
+
+    //name of the client socket
+    string destinationName = allClientObjects[getClientIndex(client_socket)].getClientName();
+    int count = 0;
+
+    //determining how many messages to send
+    for (int i = 0; i < allUnseenMessages.size(); i++) {
+        if (allUnseenMessages[i].getDestination() == destinationName) {
+            count++;
+        }
+    }
+
+    for (int k = 0 , c = 0 ; k < allUnseenMessages.size(); k++) {
+
+        //if this is not the last message to send
+        if (allUnseenMessages[k].getDestination() == destinationName && c < count - 1) {
+            string msg = allUnseenMessages[k].getSender() +": " +allUnseenMessages[k].getMessage() + '1';
+            send(client_socket, msg.c_str(), msg.length(), 0);
+        }
+        //last message to send
+        else if (allUnseenMessages[k].getDestination() == destinationName && c == count - 1) {
+            string msg = allUnseenMessages[k].getSender() +": " +allUnseenMessages[k].getMessage() + '0';
+            send(client_socket, msg.c_str(), msg.length(), 0);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * this method is used for validation in the second option where the user inputs indexes of destinations
  * if the output is true, it adds the destinations in the ClientUser object from the storage
@@ -169,14 +209,14 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
     char buffer [1024];
 
     //first it will send feedback to clients to decide whether they can continue
-    int readyToStart;
+    char readyToStart;
     if (client_count >= 3) {
-        readyToStart = 0;
+        readyToStart = '0';
     }
     else {
-        readyToStart = 1;
+        readyToStart = '1';
     }
-    send(client_socket, (char*)&readyToStart, sizeof(readyToStart), 0);
+    send(client_socket, &readyToStart, sizeof(readyToStart), 0);
 
     //receiving the username
     string receivedName;
@@ -186,14 +226,14 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
 
     //checking if it is duplicated
     bool duplicated = isDuplicated(receivedName);
-    int duplicatedAnswer;
+    char duplicatedAnswer;
 
     //if it is duplicated, the server will send client the output
     while (duplicated){
 
-        duplicatedAnswer = 1;
+        duplicatedAnswer = '1';
         //sending the duplicated answer
-        send(client_socket, (char*)&duplicatedAnswer, sizeof(duplicatedAnswer), 0);
+        send(client_socket, &duplicatedAnswer, sizeof(duplicatedAnswer), 0);
 
         //receiving a new name
         memset(buffer, 0, sizeof(buffer));
@@ -204,8 +244,8 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
     }
 
     //if the username is not a duplicate we send this feedback to user
-    duplicatedAnswer = 0;
-    send(client_socket, (char*)&duplicatedAnswer, sizeof(duplicatedAnswer), 0);
+    duplicatedAnswer = '0';
+    send(client_socket, &duplicatedAnswer, sizeof(duplicatedAnswer), 0);
 
     //registering the new client
     ClientUser newClient;

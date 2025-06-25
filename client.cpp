@@ -52,7 +52,21 @@ void printMenu() {
         }
     }
 }
+void receiveAndDisplayUnseenMessagesVer2(SOCKET client) {
 
+    char buffer[1024];
+    bool terminate = false;
+    while (!terminate ) {
+        memset(buffer, 0, sizeof(buffer));
+        recv(client, buffer, sizeof(buffer), 0);
+        string msg = buffer;
+        if (msg.back() == '0')terminate = true;
+        cout << msg.substr(0,msg.size() - 2 ) <<"\n"<< endl;
+
+
+    }
+
+}
 
 /**
  * method to display coming messages in the message mode
@@ -88,10 +102,10 @@ int main() {
     connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
     //then checking if it is available to connect
-    int readyToStart;
-    recv(clientSocket, (char*)&readyToStart, sizeof(readyToStart), 0);
+    char readyToStart;
+    recv(clientSocket, &readyToStart, sizeof(readyToStart), 0);
 
-    if (readyToStart == 0  ) {
+    if (readyToStart == '0'  ) {
 
         cout << "Cannot connect to the server, it is full. Try another time!" << endl;
         closesocket(clientSocket);
@@ -112,11 +126,11 @@ int main() {
         send(clientSocket, name.c_str(), name.length(), 0);
 
         //receiving answer that shows if duplicated
-        int isDuplicated;
-        recv(clientSocket, (char*)&isDuplicated, sizeof(isDuplicated), 0);
+        char isDuplicated;
+        recv(clientSocket, &isDuplicated, sizeof(isDuplicated), 0);
 
         //if duplicated taking username input again
-        while (isDuplicated == 1) {
+        while (isDuplicated == '1') {
         cout << endl;
         cout<<"This username already exists. Try again!" << endl;
         cout<<"Enter username: ";
@@ -126,9 +140,9 @@ int main() {
         send(clientSocket, name.c_str(), name.length(), 0);
 
         //taking duplicated answer again
-        recv(clientSocket, (char*)&isDuplicated, sizeof(isDuplicated), 0);
+        recv(clientSocket, &isDuplicated, sizeof(isDuplicated), 0);
     }
-        if (isDuplicated == 0) {
+        if (isDuplicated == '0') {
             cout <<"You are registered successfully!"<< endl;
         }
 
