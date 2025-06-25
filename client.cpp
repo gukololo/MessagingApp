@@ -8,6 +8,33 @@
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
+/**
+ * this method is for receiving and displaying unseen messages in the third option
+ * @param client client socket to display
+ */
+void receiveAndDisplayUnseenMessages(SOCKET client) {
+    string msg;
+    char buffer[1024];
+
+    //taking the first message
+    memset(buffer, 0, sizeof(buffer));
+    recv(client, buffer, sizeof(buffer), 0);
+    msg = buffer;
+    while (msg != "/-done-/") {
+        //display
+        cout << msg << endl;
+        //update
+        memset(buffer, 0, sizeof(buffer));
+        recv(client, buffer, sizeof(buffer), 0);
+        msg = buffer;
+    }
+}
+
+
+/**
+ * method to display coming messages in the message mode
+ * @param client client to display
+ */
 void displayMessages(SOCKET client) {
     char buffer [1024];
     while (true) {
@@ -32,7 +59,6 @@ int main() {
     server_addr.sin_port = htons(8080);
     inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
 
-    //connect(clientSocket, (sockaddr*)&server_addr, sizeof(server_addr));
     connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
     //then checking if it is available to connect
@@ -56,8 +82,7 @@ int main() {
         //getting the username from the user
         string name;
     cout<<"Enter username: ";
-    cin >> name;
-
+    getline(cin, name);
     //sending the name we choose and sending it to the server
     send(clientSocket, name.c_str(), name.length(), 0);
 
@@ -71,8 +96,7 @@ int main() {
         cout << endl;
         cout<<"This username already exists. Try again!" << endl;
         cout<<"Enter username: ";
-        cin >> name;
-        cout<<name<<endl;
+        getline(cin, name);
 
         //sending the name we choose and sending it to the server
         send(clientSocket, name.c_str(), name.length(), 0);
@@ -81,7 +105,6 @@ int main() {
         memset(buffer, 0, sizeof(buffer));
         recv(clientSocket, buffer, sizeof(buffer), 0);
         duplicatedAnswer = string(buffer);
-        cout <<"received duplicated answer: " << duplicatedAnswer << endl;
     }
         if (duplicatedAnswer == "okey") {
             cout <<"You are registered successfully!"<< endl;
@@ -89,18 +112,18 @@ int main() {
 
         //registration is successful
         cout << "Connected to server!" << endl;
-
+        cout << endl;
         //after registration, the new port number is received and the communication is changing according to the new port number
         //menu opens up and the application starts
         string action;
         cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
-        cin >> action;
+        getline(cin, action);
 
         //if the input is invalid
         while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6" ) {
             cout << "Your choice is invalid. Please enter a valid action (1-2-3-4)!" << endl;
             cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
-            cin >> action;
+            getline(cin, action);
         }
 
 
@@ -141,7 +164,7 @@ int main() {
 
                 //taking the input from the user
                 cout << "Who do you want to message? Enter as numbers with spaces: " <<endl;
-                cin >> destinations;
+                getline(cin, destinations);
                 send(clientSocket, destinations.c_str(), destinations.length(), 0);
 
                 //receiving answer for validation
@@ -152,7 +175,7 @@ int main() {
                 //if the input is not valid, taking input until it is valid
                 while (validationAnswer == "no") {
                     cout <<"Invalid input try again: "<<endl;
-                    cin >> destinations;
+                    getline(cin, destinations);
                     send(clientSocket, destinations.c_str(), destinations.length(), 0);
                     memset(buffer, 0, sizeof(buffer));
                     recv(clientSocket, buffer, sizeof(buffer), 0);
@@ -163,13 +186,7 @@ int main() {
 
             //3: displaying unseen messages
             if (action == "3") {
-                memset(buffer, 0, sizeof(buffer));
-                recv(clientSocket, buffer, sizeof(buffer), 0);
-                string messagesToDisplay = buffer;
-                if (messagesToDisplay == "/nothing")
-                    cout<<"No unseen messages found!"<<endl;
-                else{cout << messagesToDisplay << endl;}
-
+              receiveAndDisplayUnseenMessages(clientSocket);
             }
             //4: displaying all the active clients
             if (action == "4") {

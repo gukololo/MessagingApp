@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include "ClientUser.h"
+#include "ClientUser.cpp"
 #include "Message.cpp"
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
@@ -18,8 +18,11 @@ vector<Message> AllMessages;
 vector<Message>allUnseenMessages;
 int client_count = 0;
 
-
-
+/**
+ * a helper method to determine the client index in the storage from the given client socket
+ * @param client given client socket
+ * @return index
+ */
 int getClientIndex(SOCKET client) {
     for (int i = 0; i < allClientSockets.size(); i++) {
         if (allClientSockets[i] == client) {
@@ -35,30 +38,32 @@ int getClientIndex(SOCKET client) {
  * @return if there are no unseen messages it returns false else it returns true
  */
 void sendUnseenMessagesToUser(SOCKET client_socket) {
+
     //determining the index
-    int indexOfTheSocket = 0;
-    for (int i = 0; i < allClientSockets.size(); i++) {
-        if (allClientSockets[i] == client_socket) {
-            indexOfTheSocket = i;
-        }
-    }
+    int indexOfTheSocket = getClientIndex(client_socket);
     string destinationName = allClientObjects[indexOfTheSocket].getClientName();
 
-    //creating the messages string to send
-    string messages;
+    //creating the message string to send
+    string messageToSend;
+    int count = 0;
     for (int i = 0 ; i < allUnseenMessages.size(); ) {
         if (allUnseenMessages[i].getDestination() == destinationName) {
-            messages += allUnseenMessages[i].getSender() +": "+ allUnseenMessages[i].getMessage() + "\n";
+            messageToSend= allUnseenMessages[i].getSender() +": "+ allUnseenMessages[i].getMessage();
+            send(client_socket,messageToSend.c_str(), messageToSend.length(), 0);
             allUnseenMessages.erase(allUnseenMessages.begin() + i);
+            count++;
         }
         else {
             i++;
         }
     }
-    if (messages.empty()) {
-        messages = "/nothing";
-        send(client_socket, messages.c_str(), messages.length(), 0);
+
+    if (count == 0) {
+        messageToSend= "There are no unseen messages!";
+        send(client_socket, messageToSend.c_str(), messageToSend.length(), 0);
     }
+    messageToSend = "/-done-/";
+    send(client_socket, messageToSend.c_str(), messageToSend.length(), 0);
 }
 /**
  * this method is used for validation in the second option where the user inputs indexes of destinations
@@ -226,6 +231,7 @@ void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in cli
                     AllMessages.push_back(newMessage);
                     if (!allClientObjects[destinationIndex].getInMessageMode()) {
                         allUnseenMessages.push_back(newMessage);
+                        cout<<"Unseen message: " << newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
                     }
                     else {
                         string messageToSend = newMessage.getSender() + ": "+ newMessage.getMessage();
