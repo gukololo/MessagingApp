@@ -29,10 +29,6 @@ int getClientIndex(SOCKET client) {
     return -1;
 }
 
-
-
-
-
 /**
  * this method sends  all unseen messages to given user
  * @param client_socket client to send
