@@ -325,6 +325,9 @@ void handle_client_all(SOCKET client_socket) {
                 recv(client_socket, buffer, sizeof(buffer), 0);
                 msg = buffer;
             }
+            string finish = "/exit/";
+            send(client_socket, finish.c_str(), strlen(finish.c_str()), 0);
+
             allClientObjects[clientIndex].setInMessageMode(false);
 
         }

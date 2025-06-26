@@ -12,7 +12,7 @@ using namespace std;
  * function to print options to user
  */
 void printMenu() {
-        cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history (NOT AVAILABLE!)\n6.Disconnect (NOT AVAILABLE!)\nWhat do you want to do? "<<endl;
+        cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history \n6.Disconnect (NOT AVAILABLE!)\nWhat do you want to do? "<<endl;
 }
 
 /**
@@ -97,10 +97,11 @@ void displayMessages(SOCKET client) {
         memset(buffer, 0, sizeof(buffer));
         recv(client, buffer, sizeof(buffer), 0);
         string msg = buffer;
-
+        if (msg == "/exit/")
+            return;
         //display
         cout << msg << endl;
-        memset(buffer, 0, sizeof(buffer));
+//        memset(buffer, 0, sizeof(buffer));
     }
 }
 
@@ -197,7 +198,7 @@ int main() {
                 thread(displayMessages, clientSocket).detach();
                 while (action == "1" && msg != "/exit") {
                     getline(cin, msg);
-                    if (isDestinationEmpty == '1') {
+                    if (isDestinationEmpty == '1' && msg != "/exit") {
                         cout << "Cannot send message, you have no destinations! "<< endl;
                     }
                     else {
