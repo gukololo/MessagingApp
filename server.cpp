@@ -38,8 +38,41 @@ int getClientIndex(SOCKET client) {
  * @return if there is a message history or not
  */
 bool sendMessageHistoryToUser(const SOCKET &client) {
+
+    char buffer [1024];
     int index = getClientIndex(client);
     string clientName = allClientObjects[index].getClientName();
+    int count = 0;
+
+    //counting the related messages
+    for (int i = 0; i < AllMessages.size(); i++) {
+        if (AllMessages[i].getDestination() == clientName || AllMessages[i].getSender() == clientName) {
+            count++;
+        }
+    }
+    //if there are no related message we send end signal
+    if (count == 0 ) {
+        string endMessage = "You have no message history.0";
+        sendMessageHistoryToUser(client);
+        return false;
+    }
+    //scanning all messages and sending the related messages to client to print
+    int c = 0 ;
+    for (int i = 0 ; i < AllMessages.size(); i++) {
+        if (AllMessages[i].getSender() == clientName || AllMessages[i].getDestination() == clientName) {
+            string messageToSend = AllMessages[i].getSender() + "->" + AllMessages[i].getDestination() + ": " + AllMessages[i].getMessage();
+                if (c != count - 1) {
+                    messageToSend += "1";
+                }
+                else {
+                    messageToSend += "0";
+                }
+            send(client, messageToSend.c_str(), messageToSend.size(), 0);
+            recv(client, buffer, sizeof(buffer), 0);
+            c++;
+        }
+    }
+
     return true;
 }
 /**
@@ -47,7 +80,7 @@ bool sendMessageHistoryToUser(const SOCKET &client) {
  * @param client_socket client to send
  * @return if there are no unseen messages it returns false else it returns true
  */
-void sendUnseenMessagesToUser(SOCKET client_socket) {
+bool sendUnseenMessagesToUser(SOCKET client_socket) {
 
     //name of the client socket
     string destinationName = allClientObjects[getClientIndex(client_socket)].getClientName();
@@ -58,6 +91,9 @@ void sendUnseenMessagesToUser(SOCKET client_socket) {
         if (allUnseenMessages[i].getDestination() == destinationName) {
             count++;
         }
+    }
+    if (count == 0) {
+        return false;
     }
     char buffer[1024];
 
@@ -97,6 +133,7 @@ void sendUnseenMessagesToUser(SOCKET client_socket) {
             else
             {k++;}
     }
+    return true;
 }
 
 /**
@@ -246,6 +283,13 @@ void handle_client_all(SOCKET client_socket) {
 
             //setting the messaging mode
             allClientObjects[clientIndex].setInMessageMode(true);
+            char isDestinationEmpty;
+            if (allClientObjects[clientIndex].getDestinations().size() == 0 ) {
+                isDestinationEmpty = '1';
+            }
+            else{isDestinationEmpty = '0'; }
+
+            send(client_socket, &isDestinationEmpty, sizeof(isDestinationEmpty), 0);
 
             //receiving the message
             string msg;
@@ -314,7 +358,11 @@ void handle_client_all(SOCKET client_socket) {
         }
         //checking unseen messages
         else if (action == "3") {
-            sendUnseenMessagesToUser(client_socket);
+            bool unseenMsgFound= sendUnseenMessagesToUser(client_socket);
+            if (!unseenMsgFound) {
+                string msg = "No unseen message found!0";
+                send(client_socket, msg.c_str(), msg.length(), 0);
+            }
         }
         //see all available users
         else if (action == "4") {
@@ -322,7 +370,7 @@ void handle_client_all(SOCKET client_socket) {
         }
         //looking messaging history
         else if (action == "5") {
-
+            sendMessageHistoryToUser(client_socket);
         }
         //disconnect
         else if (action == "6") {

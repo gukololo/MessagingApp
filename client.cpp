@@ -8,25 +8,74 @@
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
+/**
+ * function to print options to user
+ */
 void printMenu() {
-        cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
+        cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history (NOT AVAILABLE!)\n6.Disconnect (NOT AVAILABLE!)\nWhat do you want to do? "<<endl;
 }
 
+/**
+ * if the input action is not valid this method is used to take input again
+ * @return valid action input
+ */
+string retakeAction() {
+    string action;
+    cout << "Your choice is invalid. Please enter a valid action (1-2-3-4-5-6)!" << endl;
+    printMenu();
+    getline(cin, action);
+    return action;
+}
 /**
  * this method is for receiving and displaying unseen messages in the third option
  * @param client client socket to display
  */
 void receiveAndDisplayUnseenMessages(SOCKET client) {
 
-    char buffer[1024];
-    bool terminate = false;
+    char buffer[1024]; //char array to receive messages
+    bool terminate = false; //boolean that depends on if the received message is the last one
+
     while (!terminate ) {
+
+        //receiving message
         memset(buffer, 0, sizeof(buffer));
         recv(client, buffer, sizeof(buffer), 0);
         string msg = buffer;
+
+        //determine if it is the last one
         if (msg.back() == '0')
         {terminate = true;}
+
+        //display the message
         cout << msg.substr(0,msg.size() - 1 )<< endl;
+
+        //giving feedback
+        string feedback = "read";
+        send(client, feedback.c_str(), feedback.size(), 0);
+
+
+    }
+
+}void receiveAndDisplayHistory(SOCKET client) {
+
+    char buffer[1024]; //char array to receive messages
+    bool terminate = false; //boolean that depends on if the received message is the last one
+
+    while (!terminate ) {
+
+        //receiving message
+        memset(buffer, 0, sizeof(buffer));
+        recv(client, buffer, sizeof(buffer), 0);
+        string msg = buffer;
+
+        //determine if it is the last one
+        if (msg.back() == '0')
+        {terminate = true;}
+
+        //display the message
+        cout << msg.substr(0,msg.size() - 1 )<< endl;
+
+        //giving feedback
         string feedback = "read";
         send(client, feedback.c_str(), feedback.size(), 0);
 
@@ -35,6 +84,8 @@ void receiveAndDisplayUnseenMessages(SOCKET client) {
 
 }
 
+void receiveMessageHistoryAndDisplay(SOCKET client){
+}
 /**
  * method to display coming messages in the message mode
  * @param client client to display
@@ -42,9 +93,12 @@ void receiveAndDisplayUnseenMessages(SOCKET client) {
 void displayMessages(SOCKET client) {
     char buffer [1024];
     while (true) {
+        //receiving messages
         memset(buffer, 0, sizeof(buffer));
         recv(client, buffer, sizeof(buffer), 0);
         string msg = buffer;
+
+        //display
         cout << msg << endl;
         memset(buffer, 0, sizeof(buffer));
     }
@@ -72,6 +126,7 @@ int main() {
     char readyToStart;
     recv(clientSocket, &readyToStart, sizeof(readyToStart), 0);
 
+    //if server is full
     if (readyToStart == '0'  ) {
 
         cout << "Cannot connect to the server, it is full. Try another time!" << endl;
@@ -125,9 +180,7 @@ int main() {
 
         //if the input is invalid
         while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6" ) {
-            cout << "Your choice is invalid. Please enter a valid action (1-2-3-4-5-6)!" << endl;
-            printMenu();
-            getline(cin, action);
+           action = retakeAction();
         }
 
 
@@ -138,11 +191,18 @@ int main() {
             //1: Messaging Mode
             if (action == "1" ) {
                 cout << "Opening message mode. Type /exit to exit." << endl;
+                char isDestinationEmpty;
+                recv(clientSocket, &isDestinationEmpty, sizeof(isDestinationEmpty), 0);
                 string msg;
                 thread(displayMessages, clientSocket).detach();
                 while (action == "1" && msg != "/exit") {
                     getline(cin, msg);
-                    send(clientSocket, msg.c_str(), msg.length(), 0);
+                    if (isDestinationEmpty == '1') {
+                        cout << "Cannot send message, you have no destinations! "<< endl;
+                    }
+                    else {
+                        send(clientSocket, msg.c_str(), msg.length(), 0);
+                    }
                 }
             }
 
@@ -210,9 +270,15 @@ int main() {
                 }
                 cout << endl;
             }
-
+            if (action == "5") {
+                receiveAndDisplayHistory(clientSocket);
+                cout << endl;
+            }
             printMenu();
             getline(cin, action);
+            while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6" ) {
+                action = retakeAction();
+            }
             send(clientSocket, action.c_str(), action.length(), 0);
 
         }
