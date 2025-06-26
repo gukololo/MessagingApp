@@ -8,7 +8,6 @@
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
-
 void printMenu() {
         cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for messages\n4.See all available users\n5.See my message history\n6.Disconnect\nWhat do you want to do? "<<endl;
 }
@@ -139,7 +138,7 @@ int main() {
             //1: Messaging Mode
             if (action == "1" ) {
                 cout << "Opening message mode. Type /exit to exit." << endl;
-                string msg = "";
+                string msg;
                 thread(displayMessages, clientSocket).detach();
                 while (action == "1" && msg != "/exit") {
                     getline(cin, msg);
@@ -150,6 +149,7 @@ int main() {
             //2: choosing users to send message
             if (action == "2") {
                 string destinations;
+
                 //receiving all the active client names and displaying them
                 memset(buffer, 0, sizeof(buffer));
                 recv(clientSocket, buffer, sizeof(buffer), 0);
@@ -159,13 +159,12 @@ int main() {
                 vector<string> clientNames;
                 stringstream ss(activeClientNames);
                 string singleName;
+                int count = 0;
 
-                while (getline(ss, singleName, ' ')) {
-                    clientNames.push_back(singleName);
+                while (getline(ss, singleName, '/')) {
+                    cout << ++count << "." << singleName << endl;
                 }
-                for (int i = 0 ; i < clientNames.size(); i++) {
-                    cout << i+1 <<"."<< clientNames[i] << endl;
-                }
+
 
                 //taking the input from the user
                 cout << "Who do you want to message? Enter as numbers with spaces: " <<endl;
@@ -191,7 +190,6 @@ int main() {
 
             //3: displaying unseen messages
             if (action == "3") {
-           // receiveAndDisplayUnseenMessages(clientSocket);
                 receiveAndDisplayUnseenMessages(clientSocket);
                 cout << endl;
             }
@@ -204,23 +202,18 @@ int main() {
                 string activeClientNames = buffer;
 
                 //dividing the received names string and displaying
-                vector<string> clientNames;
                 stringstream ss(activeClientNames);
                 string singleName;
-
-                while (getline(ss, singleName, ' ')) {
-                    clientNames.push_back(singleName);
+                int count = 0;
+                while (getline(ss, singleName, '/')) {
+                    cout << ++count << "." << singleName << endl;
                 }
-                for (int i = 0 ; i < clientNames.size(); i++) {
-                    cout << i+1 <<"."<< clientNames[i] << endl;
-                }
-
+                cout << endl;
             }
 
             printMenu();
             getline(cin, action);
             send(clientSocket, action.c_str(), action.length(), 0);
-
 
         }
 

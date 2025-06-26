@@ -33,6 +33,16 @@ int getClientIndex(SOCKET client) {
 }
 
 /**
+ * method to send the message history to user in the 5th option
+ * @param client client to send
+ * @return if there is a message history or not
+ */
+bool sendMessageHistoryToUser(const SOCKET &client) {
+    int index = getClientIndex(client);
+    string clientName = allClientObjects[index].getClientName();
+    return true;
+}
+/**
  * this method sends  all unseen messages to given user
  * @param client_socket client to send
  * @return if there are no unseen messages it returns false else it returns true
@@ -50,7 +60,9 @@ void sendUnseenMessagesToUser(SOCKET client_socket) {
         }
     }
     char buffer[1024];
-    for (int k = 0 , c = 0 ; k < allUnseenMessages.size(); k++) {
+
+    //tracing the vector and sending suitable messages
+    for (int k = 0 , c = 0 ; k < allUnseenMessages.size(); ) {
 
         //if this is not the last message to send
         if (allUnseenMessages[k].getDestination() == destinationName && c < count - 1) {
@@ -59,6 +71,9 @@ void sendUnseenMessagesToUser(SOCKET client_socket) {
             string msg = allUnseenMessages[k].getSender() +": " +allUnseenMessages[k].getMessage() + '1';
             send(client_socket, msg.c_str(), msg.length(), 0);
             c++;
+
+            //after sending the message, the server deletes it from unseen messages
+            allUnseenMessages.erase(allUnseenMessages.begin() + k);
 
             //taking feedback for stoping TCP to break the messages
             memset(buffer, 0, sizeof(buffer));
@@ -72,11 +87,15 @@ void sendUnseenMessagesToUser(SOCKET client_socket) {
             string msg = allUnseenMessages[k].getSender() +": " +allUnseenMessages[k].getMessage() + '0';
             send(client_socket, msg.c_str(), msg.length(), 0);
 
+            //after sending the message, the server deletes it from unseen messages
+            allUnseenMessages.erase(allUnseenMessages.begin() + k);
+
             //taking feedback for stoping TCP to break the messages
             memset(buffer, 0, sizeof(buffer));
             recv(client_socket, buffer, sizeof(buffer), 0);
         }
-
+            else
+            {k++;}
     }
 }
 
@@ -148,7 +167,7 @@ bool isDuplicated(const string &name) {
 void sendClientAllUserNames(SOCKET client) {
     string usernames;
     for (int i = 0; i < allClientObjects.size(); i++) {
-        usernames += allClientObjects[i].getClientName() + " ";
+        usernames += allClientObjects[i].getClientName() + "/";
     }
     send(client,usernames.c_str(), usernames.length(), 0);
 }
@@ -247,11 +266,13 @@ void handle_client_all(SOCKET client_socket) {
                     //if the destination is not in the messaging mode, the message is stored in unseen messages vector
                     if (!allClientObjects[destinationIndex].getInMessageMode()) {
                         allUnseenMessages.push_back(newMessage);
+                        //displaying in server
                         cout<<"Unseen message: " << newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
                     }
                     else {
                         string messageToSend = newMessage.getSender() + ": "+ newMessage.getMessage();
                         cout<< newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
+                        //sending the message
                         send(allClientSockets[destinationIndex], messageToSend.c_str(), messageToSend.length(), 0);
                     }
 
@@ -316,7 +337,6 @@ void handle_client_all(SOCKET client_socket) {
 }
 
 int main() {
-    char buffer[1024];
 
     WSADATA wsa;
     WSAStartup(MAKEWORD(2, 2), &wsa);
@@ -333,7 +353,7 @@ int main() {
     bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
 
     //listening
-    //second parameter is the number of maximum waiting clients, for ex if it is 5 it means that server can accept 5 clients and the sixth one will be declined
+    //second parameter is the number of maximum waiting clients, for ex: if it is 5 it means that server can accept 5 clients and the sixth one will be declined
     listen(serverSocket, SOMAXCONN);
 
     cout << "Server started!"<< endl;
@@ -349,6 +369,6 @@ int main() {
 
     }
 
-    WSACleanup();
-    return 0;
+    //WSACleanup();
+    //return 0;
 }
