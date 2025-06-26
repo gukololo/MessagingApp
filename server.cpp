@@ -37,57 +37,7 @@ int getClientIndex(SOCKET client) {
  * @param client_socket client to send
  * @return if there are no unseen messages it returns false else it returns true
  */
-// void sendUnseenMessagesToUser(SOCKET client_socket) {
-//
-//     //determining the index
-//     int indexOfTheSocket = getClientIndex(client_socket);
-//     string destinationName = allClientObjects[indexOfTheSocket].getClientName();
-//
-//      //creating the message string to send
-//      string messageToSend;
-//      int count = 0;
-//      for (int i = 0 ; i < allUnseenMessages.size(); ) {
-//          if (allUnseenMessages[i].getDestination() == destinationName) {
-//              messageToSend= allUnseenMessages[i].getSender() +": "+ allUnseenMessages[i].getMessage();
-//              send(client_socket,messageToSend.c_str(), messageToSend.length(), 0);
-//              allUnseenMessages.erase(allUnseenMessages.begin() + i);
-//              count++;
-//          }
-//          else {
-//              i++;
-//          }
-//      }
-//
-//      if (count == 0) {
-//          messageToSend= "There are no unseen messages!";
-//          send(client_socket, messageToSend.c_str(), messageToSend.length(), 0);
-//      }
-//      messageToSend = "/-done-/";
-//      send(client_socket, messageToSend.c_str(), messageToSend.length(), 0);
-// }
 void sendUnseenMessagesToUser(SOCKET client_socket) {
-    int index = getClientIndex(client_socket);
-    string destinationName = allClientObjects[index].getClientName();
-
-    string result;
-    for (int i = 0; i < allUnseenMessages.size(); ) {
-        if (allUnseenMessages[i].getDestination() == destinationName) {
-            result += allUnseenMessages[i].getSender() + ": " + allUnseenMessages[i].getMessage() + "\n";
-            allUnseenMessages.erase(allUnseenMessages.begin() + i);
-        } else {
-            i++;
-        }
-    }
-
-    if (result.empty()) {
-        result = "There are no unseen messages!\n";
-    }
-
-    result += "/-done-/\n";
-    send(client_socket, result.c_str(), result.length(), 0);
-}
-
-void sendUnseenMessagesToUserVer2(SOCKET client_socket) {
 
     //name of the client socket
     string destinationName = allClientObjects[getClientIndex(client_socket)].getClientName();
@@ -99,39 +49,42 @@ void sendUnseenMessagesToUserVer2(SOCKET client_socket) {
             count++;
         }
     }
-
+    char buffer[1024];
     for (int k = 0 , c = 0 ; k < allUnseenMessages.size(); k++) {
 
         //if this is not the last message to send
         if (allUnseenMessages[k].getDestination() == destinationName && c < count - 1) {
+
+            //if it is not the last message, the server puts '1' to the end
             string msg = allUnseenMessages[k].getSender() +": " +allUnseenMessages[k].getMessage() + '1';
             send(client_socket, msg.c_str(), msg.length(), 0);
+            c++;
+
+            //taking feedback for stoping TCP to break the messages
+            memset(buffer, 0, sizeof(buffer));
+            recv(client_socket, buffer, sizeof(buffer), 0);
+
+
         }
         //last message to send
         else if (allUnseenMessages[k].getDestination() == destinationName && c == count - 1) {
+            //if last it puts '0' to end of the message
             string msg = allUnseenMessages[k].getSender() +": " +allUnseenMessages[k].getMessage() + '0';
             send(client_socket, msg.c_str(), msg.length(), 0);
+
+            //taking feedback for stoping TCP to break the messages
+            memset(buffer, 0, sizeof(buffer));
+            recv(client_socket, buffer, sizeof(buffer), 0);
         }
+
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 /**
- * this method is used for validation in the second option where the user inputs indexes of destinations
- * if the output is true, it adds the destinations in the ClientUser object from the storage
- * @param destinations input from user
- * @return if valid or not
+ * this method checks if the input of the user for choosing destinations is correct, if it is correct it add these destinations to storage and output true, if not it outputs false
+ * @param destinations string input
+ * @param client_socket client socket to apply this process
+ * @return valid or not
  */
 bool isDestinationsValid(const string &destinations,const SOCKET client_socket) {
 
@@ -204,7 +157,7 @@ void sendClientAllUserNames(SOCKET client) {
  * method for all the handling process of a client
  * @param server_socket
  */
-void handle_client_all(SOCKET server_socket,SOCKET client_socket,sockaddr_in client_addr,int client_size) {
+void handle_client_all(SOCKET client_socket) {
     //a char array for receiving messages
     char buffer [1024];
 
@@ -392,7 +345,7 @@ int main() {
             sockaddr_in client_addr{};
             int client_size = sizeof(client_addr);
             SOCKET client_socket = accept(serverSocket, (sockaddr*)&client_addr, &client_size);
-            thread(handle_client_all, serverSocket, client_socket,client_addr,client_size).detach();
+            thread(handle_client_all, client_socket).detach();
 
     }
 
