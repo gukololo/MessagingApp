@@ -12,11 +12,11 @@ using namespace std;
 
 
 // Client storage
-vector<SOCKET> allClientSockets;
-vector<ClientUser> allClientObjects;
-vector<Message> AllMessages;
-vector<Message>allUnseenMessages;
-int client_count = 0;
+vector<SOCKET> allClientSockets; //stores all client sockets
+vector<ClientUser> allClientObjects; //stores all ClientUser objects
+vector<Message> AllMessages; //stores all the message objects
+vector<Message>allUnseenMessages; //stores all unseen messages
+int client_count = 0; //counts clients
 
 /**
  * a helper method to determine the client index in the storage from the given client socket
@@ -33,7 +33,7 @@ int getClientIndex(SOCKET client) {
 }
 
 /**
- * a helper method which determines if a string is capable to convert to a integer
+ * a helper method which determines if a string is capable to convert to an integer
  * @param str given string
  * @return if successful or not
  */
