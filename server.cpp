@@ -16,8 +16,21 @@ vector<SOCKET> allClientSockets; //stores all client sockets
 vector<ClientUser> allClientObjects; //stores all ClientUser objects
 vector<Message> AllMessages; //stores all the message objects
 vector<Message>allUnseenMessages; //stores all unseen messages
-int client_count = 0; //counts clients
 
+
+/**
+ * method for getting to amount of online users
+ * @return count of active users
+ */
+int getActiveClientAmount() {
+    int count = 0;
+    for (const auto & allClientObject : allClientObjects) {
+        if (allClientObject.getIsActive()) {
+            count++;
+        }
+    }
+    return count;
+}
 /**
  * a helper method to determine the client index in the storage from the given client socket
  * @param client given client socket
@@ -48,6 +61,13 @@ bool isInteger(const string& str) {
 }
 
 /**
+ * this function applies when user disconnects from the menu, it handles the process of reconnecting
+ * @param client_socket client socket to handle
+ * TODO:
+ */
+void handleOfflineMode(SOCKET client_socket) ;
+
+/**
  * a method for handling the message mode for the given user
  * @param client_socket client socket to handle
  */
@@ -55,7 +75,7 @@ void handleMessagingMode(SOCKET client_socket) {
 
         char buffer[1024];
 
-    //determining client index
+            //determining client index
             int clientIndex = getClientIndex(client_socket) ;
 
             //setting the messaging mode
@@ -230,13 +250,13 @@ bool isDestinationsValid(const string &destinations,const SOCKET client_socket) 
             return false;
         }
 
-        else if (find(allDestinations.begin(), allDestinations.end(), singleDestination) == allDestinations.end() )
+        if (find(allDestinations.begin(), allDestinations.end(), singleDestination) == allDestinations.end() )
         allDestinations.push_back(singleDestination);
     }
 
     //checking if the inputs are valid
     for (int i = 0; i < allDestinations.size(); i++) {
-        if ((stoi(allDestinations[i]) > client_count) || (stoi(allDestinations[i]) <= 0) ) {
+        if ((stoi(allDestinations[i]) > allClientObjects.size()) || (stoi(allDestinations[i]) <= 0) ) {
             return false;
         }
     }
@@ -319,16 +339,38 @@ void handleChoosingDestinations(SOCKET client_socket) {
     send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
 }
 /**
+ * this method handles if the user disconnects in the all situations
+ * @param client client to handle
+ * @param state which state
+ * TODO:
+ */
+void handleDisconnect(SOCKET client, const int state) {
+    if (state == 1) {
+    }
+    else if (state == 2) {
+
+    }
+    else if (state == 3) {
+
+    }
+    else if (state == 4) {
+
+    }
+    else if (state == 5) {
+
+    }
+}
+/**
  * method for all the handling process of a client
- * @param server_socket
+ * @param client_socket client socket to handle
  */
 void handle_client_all(SOCKET client_socket) {
     //a char array for receiving messages
     char buffer [1024];
-
+    int bytes;
     //first it will send feedback to clients to decide whether they can continue
     char readyToStart;
-    if (client_count >= 3) {
+    if (getActiveClientAmount() >= 3) {
         readyToStart = '0';
     }
     else {
@@ -371,7 +413,6 @@ void handle_client_all(SOCKET client_socket) {
     newClient.setIsActive(true);
 
     //storing the new client
-    client_count++;
     allClientObjects.push_back(newClient);
     allClientSockets.push_back(client_socket);
 
@@ -411,7 +452,8 @@ void handle_client_all(SOCKET client_socket) {
         }
         //disconnect
         else if (action == "6") {
-
+            int index = getClientIndex(client_socket);
+            allClientObjects[index].setIsActive(false);
         }
 
         memset(buffer, 0, sizeof(buffer));

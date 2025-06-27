@@ -16,6 +16,24 @@ void printMenu() {
 }
 
 /**
+ * This function opens offline mode, sends user to waiting, if user wants to reconnect, it receives signal from the server and according to this signal it reconnects
+ * @param client client that will go offline
+ * TODO:
+ */
+void openOfflineMode(SOCKET client) {
+    cout << "Disconnected. Type /return to return." << endl;
+    string back;
+    while (back != "/return") {
+        getline(cin, back);
+        if (back != "/return") {
+            cout << "Invalid comment." << endl;
+        }
+    }
+    char online ='1';
+    send(client, &online, 1, 0);
+}
+
+/**
  * if the input action is not valid this method is used to take input again
  * @return valid action input
  */
@@ -56,7 +74,13 @@ void receiveAndDisplayUnseenMessages(SOCKET client) {
 
     }
 
-}void receiveAndDisplayHistory(SOCKET client) {
+}
+
+/**
+ * this method applies in the 5th option where the user receives the message history
+ * @param client client to handle
+ */
+void receiveAndDisplayHistory(SOCKET client) {
 
     char buffer[1024]; //char array to receive messages
     bool terminate = false; //boolean that depends on if the received message is the last one
@@ -101,6 +125,7 @@ void displayMessages(SOCKET client) {
         cout << msg << endl;
     }
 }
+
 
 int main() {
 
@@ -270,6 +295,10 @@ int main() {
             }
             if (action == "5") {
                 receiveAndDisplayHistory(clientSocket);
+                cout << endl;
+            }
+            if (action == "6") {
+                openOfflineMode(clientSocket);
                 cout << endl;
             }
             printMenu();
