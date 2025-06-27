@@ -32,6 +32,20 @@ int getClientIndex(SOCKET client) {
     return -1;
 }
 
+/**
+ * a helper method which determines if a string is capable to convert to a integer
+ * @param str given string
+ * @return if successful or not
+ */
+bool isInteger(const string& str) {
+    try {
+        size_t pos;
+        stoi(str, &pos);
+        return pos == str.length();
+    } catch (...) {
+        return false;
+    }
+}
 
 /**
  * a method for handling the message mode for the given user
@@ -212,13 +226,17 @@ bool isDestinationsValid(const string &destinations,const SOCKET client_socket) 
 
     while (getline(ss, singleDestination, ' ')) {
         //checks if the index already exists
-        if (find(allDestinations.begin(), allDestinations.end(), singleDestination) == allDestinations.end() )
+        if (!isInteger(singleDestination)) {
+            return false;
+        }
+
+        else if (find(allDestinations.begin(), allDestinations.end(), singleDestination) == allDestinations.end() )
         allDestinations.push_back(singleDestination);
     }
 
     //checking if the inputs are valid
     for (int i = 0; i < allDestinations.size(); i++) {
-        if ((stoi(allDestinations[i]) > client_count) || (stoi(allDestinations[i]) <= 0)) {
+        if ((stoi(allDestinations[i]) > client_count) || (stoi(allDestinations[i]) <= 0) ) {
             return false;
         }
     }
@@ -352,13 +370,12 @@ void handle_client_all(SOCKET client_socket) {
     newClient.setClientName(receivedName);
     newClient.setIsActive(true);
 
+    //storing the new client
     client_count++;
     allClientObjects.push_back(newClient);
     allClientSockets.push_back(client_socket);
 
     cout << "Client " <<receivedName << " connected."  << endl;
-
-
 
     //now the user is in the menu
     memset(buffer, 0, sizeof(buffer));
