@@ -84,8 +84,6 @@ void receiveAndDisplayUnseenMessages(SOCKET client) {
 
 }
 
-void receiveMessageHistoryAndDisplay(SOCKET client){
-}
 /**
  * method to display coming messages in the message mode
  * @param client client to display
@@ -101,7 +99,6 @@ void displayMessages(SOCKET client) {
             return;
         //display
         cout << msg << endl;
-//        memset(buffer, 0, sizeof(buffer));
     }
 }
 

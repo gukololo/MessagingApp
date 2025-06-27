@@ -32,12 +32,73 @@ int getClientIndex(SOCKET client) {
     return -1;
 }
 
+
 /**
- * method to send the message history to user in the 5th option
- * @param client client to send
- * @return if there is a message history or not
+ * a method for handling the message mode for the given user
+ * @param client_socket client socket to handle
  */
-bool sendMessageHistoryToUser(const SOCKET &client) {
+void handleMessagingMode(SOCKET client_socket) {
+
+        char buffer[1024];
+
+    //determining client index
+            int clientIndex = getClientIndex(client_socket) ;
+
+            //setting the messaging mode
+            allClientObjects[clientIndex].setInMessageMode(true);
+            char isDestinationEmpty;
+            if (allClientObjects[clientIndex].getDestinations().size() == 0 ) {
+                isDestinationEmpty = '1';
+            }
+            else{isDestinationEmpty = '0'; }
+
+            send(client_socket, &isDestinationEmpty, sizeof(isDestinationEmpty), 0);
+
+            //receiving the message
+            string msg;
+            memset(buffer, 0, sizeof(buffer));
+            recv(client_socket, buffer, sizeof(buffer), 0);
+            msg = buffer;
+            while (msg != "/exit") {
+
+                for (int i = 0 ; i < allClientObjects[clientIndex].getDestinations().size(); i++ ) {
+
+                    //storing message
+                    int destinationIndex = allClientObjects[clientIndex].getDestinations()[i];
+                    Message newMessage;
+                    newMessage.setDestination(allClientObjects[destinationIndex].getClientName());
+                    newMessage.setSender(allClientObjects[clientIndex].getClientName());
+                    newMessage.setMessage(msg);
+                    AllMessages.push_back(newMessage);
+                    //if the destination is not in the messaging mode, the message is stored in unseen messages vector
+                    if (!allClientObjects[destinationIndex].getInMessageMode()) {
+                        allUnseenMessages.push_back(newMessage);
+                        //displaying in server
+                        cout<<"Unseen message: " << newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
+                    }
+                    else {
+                        string messageToSend = newMessage.getSender() + ": "+ newMessage.getMessage();
+                        cout<< newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
+                        //sending the message
+                        send(allClientSockets[destinationIndex], messageToSend.c_str(), messageToSend.length(), 0);
+                    }
+
+                }
+                memset(buffer, 0, sizeof(buffer));
+                recv(client_socket, buffer, sizeof(buffer), 0);
+                msg = buffer;
+            }
+            string finish = "/exit/";
+            send(client_socket, finish.c_str(), strlen(finish.c_str()), 0);
+
+            allClientObjects[clientIndex].setInMessageMode(false);
+}
+
+/**
+ * this method sends message all message history to the user, if the user has no message history it sends a warning
+ * @param client user to send
+ */
+void sendMessageHistoryToUser(const SOCKET &client) {
 
     char buffer [1024];
     int index = getClientIndex(client);
@@ -53,8 +114,8 @@ bool sendMessageHistoryToUser(const SOCKET &client) {
     //if there are no related message we send end signal
     if (count == 0 ) {
         string endMessage = "You have no message history.0";
-        sendMessageHistoryToUser(client);
-        return false;
+        send(client, endMessage.c_str(), endMessage.size(), 0);
+        return ;
     }
     //scanning all messages and sending the related messages to client to print
     int c = 0 ;
@@ -73,7 +134,7 @@ bool sendMessageHistoryToUser(const SOCKET &client) {
         }
     }
 
-    return true;
+
 }
 /**
  * this method sends  all unseen messages to given user
@@ -210,6 +271,36 @@ void sendClientAllUserNames(SOCKET client) {
 }
 
 /**
+ * general method to handle all the choosing destination process for the user
+ * @param client_socket user socket to handle
+ */
+void handleChoosingDestinations(SOCKET client_socket) {
+    char buffer[1024];
+    //sending user the names
+    sendClientAllUserNames(client_socket);
+
+    memset(buffer, 0, sizeof(buffer));
+    recv(client_socket, buffer, sizeof(buffer), 0);
+    string destinations = buffer;
+
+    //checking if it is valid, this method adds destinations to storage if it is valid
+    bool isValid = isDestinationsValid(destinations,client_socket);
+    string destinationsValid;
+
+    //if the input is not valid, server repeats the process until the input is valid
+    while (!isValid) {
+        destinationsValid = "no";
+        send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
+        memset(buffer, 0, sizeof(buffer));
+        recv(client_socket, buffer, sizeof(buffer), 0);
+        destinations = buffer;
+        isValid = isDestinationsValid(destinations,client_socket);
+    }
+    //the input is valid, the server gives feedback
+    destinationsValid = "yes";
+    send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
+}
+/**
  * method for all the handling process of a client
  * @param server_socket
  */
@@ -277,86 +368,12 @@ void handle_client_all(SOCKET client_socket) {
 
         //messaging mode
         if (action == "1") {
-
-            //determining client index
-            int clientIndex = getClientIndex(client_socket) ;
-
-            //setting the messaging mode
-            allClientObjects[clientIndex].setInMessageMode(true);
-            char isDestinationEmpty;
-            if (allClientObjects[clientIndex].getDestinations().size() == 0 ) {
-                isDestinationEmpty = '1';
-            }
-            else{isDestinationEmpty = '0'; }
-
-            send(client_socket, &isDestinationEmpty, sizeof(isDestinationEmpty), 0);
-
-            //receiving the message
-            string msg;
-            memset(buffer, 0, sizeof(buffer));
-            recv(client_socket, buffer, sizeof(buffer), 0);
-            msg = buffer;
-            while (msg != "/exit") {
-
-                for (int i = 0 ; i < allClientObjects[clientIndex].getDestinations().size(); i++ ) {
-
-                    //storing message
-                    int destinationIndex = allClientObjects[clientIndex].getDestinations()[i];
-                    Message newMessage;
-                    newMessage.setDestination(allClientObjects[destinationIndex].getClientName());
-                    newMessage.setSender(allClientObjects[clientIndex].getClientName());
-                    newMessage.setMessage(msg);
-                    AllMessages.push_back(newMessage);
-                    //if the destination is not in the messaging mode, the message is stored in unseen messages vector
-                    if (!allClientObjects[destinationIndex].getInMessageMode()) {
-                        allUnseenMessages.push_back(newMessage);
-                        //displaying in server
-                        cout<<"Unseen message: " << newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
-                    }
-                    else {
-                        string messageToSend = newMessage.getSender() + ": "+ newMessage.getMessage();
-                        cout<< newMessage.getSender() << "->" << newMessage.getDestination() << ": "<<newMessage.getMessage() << endl;
-                        //sending the message
-                        send(allClientSockets[destinationIndex], messageToSend.c_str(), messageToSend.length(), 0);
-                    }
-
-                }
-                memset(buffer, 0, sizeof(buffer));
-                recv(client_socket, buffer, sizeof(buffer), 0);
-                msg = buffer;
-            }
-            string finish = "/exit/";
-            send(client_socket, finish.c_str(), strlen(finish.c_str()), 0);
-
-            allClientObjects[clientIndex].setInMessageMode(false);
-
+            handleMessagingMode(client_socket);
         }
         //choosing destinations
         else if (action == "2") {
 
-            //sending user the names
-            sendClientAllUserNames(client_socket);
-
-            memset(buffer, 0, sizeof(buffer));
-            recv(client_socket, buffer, sizeof(buffer), 0);
-            string destinations = buffer;
-
-            //checking if it is valid, this method adds destinations to storage if it is valid
-            bool isValid = isDestinationsValid(destinations,client_socket);
-            string destinationsValid;
-
-            //if the input is not valid, server repeats the process until the input is valid
-            while (!isValid) {
-                destinationsValid = "no";
-                send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
-                memset(buffer, 0, sizeof(buffer));
-                recv(client_socket, buffer, sizeof(buffer), 0);
-                destinations = buffer;
-                isValid = isDestinationsValid(destinations,client_socket);
-            }
-            //the input is valid, the server gives feedback
-            destinationsValid = "yes";
-            send(client_socket, destinationsValid.c_str(), destinationsValid.length(), 0);
+            handleChoosingDestinations(client_socket);
 
         }
         //checking unseen messages
