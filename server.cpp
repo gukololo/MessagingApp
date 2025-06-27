@@ -454,6 +454,11 @@ void handle_client_all(SOCKET client_socket) {
         else if (action == "6") {
             int index = getClientIndex(client_socket);
             allClientObjects[index].setIsActive(false);
+            char done;
+            recv(client_socket, &done, sizeof(done), 0);
+            allClientObjects[index].setIsActive(true);
+
+
         }
 
         memset(buffer, 0, sizeof(buffer));

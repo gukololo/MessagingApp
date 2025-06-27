@@ -300,6 +300,7 @@ int main() {
             if (action == "6") {
                 openOfflineMode(clientSocket);
                 cout << endl;
+
             }
             printMenu();
             getline(cin, action);
