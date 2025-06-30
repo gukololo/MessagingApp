@@ -12,13 +12,12 @@ using namespace std;
  * function to print options to user
  */
 void printMenu() {
-    cout << "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history \n6.Disconnect (NOT AVAILABLE!)\nWhat do you want to do? " << endl;
+    cout << "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all online users\n5.See my message history \n6.Disconnect \nWhat do you want to do? " << endl;
 }
 
 /**
  * This function opens offline mode, sends user to waiting, if user wants to reconnect, it receives signal from the server and according to this signal it reconnects
  * @param client client that will go offline
- * TODO:
  */
 void openOfflineMode(SOCKET client) {
     //taking done signal from the server
@@ -38,21 +37,33 @@ void openOfflineMode(SOCKET client) {
     char finish;
     recv(client, &finish, sizeof(finish), 0);
 }
-void displayActiveClients(SOCKET clientSocket) {
-    char buffer[1024]; //char array to receive messages
-    //receiving all the names of clients
-    memset(buffer, 0, sizeof(buffer));
-    recv(clientSocket, buffer, sizeof(buffer), 0);
-    string activeClientNames = buffer;
 
-    //dividing the received names string and displaying
-    stringstream ss(activeClientNames);
-    string singleName;
+
+
+
+/**
+* method for displaying active clients
+*/
+void displayActiveClients(SOCKET clientSocket) {
+
+    char buffer[1024];
     int count = 0;
-    while (getline(ss, singleName, '/')) {
-        cout << ++count << "." << singleName << endl;
+	bool terminate = false;
+    while (!terminate) {
+		memset(buffer, 0, sizeof(buffer));
+        recv(clientSocket, buffer, sizeof(buffer), 0);
+        string receivedUsername = buffer;
+        count++;
+        cout << count << "." << receivedUsername.substr(0, receivedUsername.size() - 1) << endl;
+        char read = '1';
+        send(clientSocket, &read, 1, 0);
+        if(receivedUsername.back() == '0') {
+            terminate = true;
+		}
+        
     }
-    cout << endl;
+    char done;
+	recv(clientSocket, &done, sizeof(done), 0);
 }
 /**
  * if the input action is not valid this method is used to take input again
@@ -63,6 +74,7 @@ string retakeAction() {
     cout << "Your choice is invalid. Please enter a valid action (1-2-3-4-5-6)!" << endl;
     printMenu();
     getline(cin, action);
+	cout << endl;
     return action;
 }
 /**
@@ -107,7 +119,7 @@ void receiveAndDisplayHistory(SOCKET client) {
 
     char buffer[1024]; //char array to receive messages
     bool terminate = false; //boolean that depends on if the received message is the last one
-
+    cout << endl;
     while (!terminate) {
 
         //receiving message
@@ -213,6 +225,7 @@ int main() {
             recv(clientSocket, &isDuplicated, sizeof(isDuplicated), 0);
         }
         if (isDuplicated == '0') {
+			cout << endl;
             cout << "You are registered successfully!" << endl;
         }
 
@@ -225,6 +238,7 @@ int main() {
         string action;
         printMenu();
         getline(cin, action);
+		cout << endl;
 
         //if the input is invalid
         while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6") {
@@ -256,25 +270,10 @@ int main() {
 
             //2: choosing users to send message
             if (action == "2") {
-                string destinations;
 
-                //receiving all the active client names and displaying them
-                memset(buffer, 0, sizeof(buffer));
-                recv(clientSocket, buffer, sizeof(buffer), 0);
-                string activeClientNames = buffer;
-
-                //dividing the received names string and displaying
-                vector<string> clientNames;
-                stringstream ss(activeClientNames);
-                string singleName;
-                int count = 0;
-
-                while (getline(ss, singleName, '/')) {
-                    cout << ++count << "." << singleName << endl;
-                }
-
-
+                displayActiveClients(clientSocket);
                 //taking the input from the user
+                string destinations;
                 cout << "Who do you want to message? Enter as numbers with spaces: " << endl;
                 getline(cin, destinations);
                 send(clientSocket, destinations.c_str(), destinations.length(), 0);
@@ -304,6 +303,8 @@ int main() {
             //4: displaying all the active clients
             if (action == "4") {
                 displayActiveClients(clientSocket);
+                cout << endl;
+
             }
             if (action == "5") {
                 receiveAndDisplayHistory(clientSocket);
@@ -316,6 +317,7 @@ int main() {
             }
             printMenu();
             getline(cin, action);
+			cout << endl;
             while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6") {
                 action = retakeAction();
             }

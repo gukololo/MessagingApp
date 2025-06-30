@@ -78,6 +78,7 @@ void handleOfflineMode(SOCKET client_socket) {
     send(client_socket, &finish, sizeof(finish), 0);
     //after taking and sending rejoining feedback, the server sets the client object to active again
     allClientObjects[index].setIsActive(true);
+    cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " reconnected." << endl;
 
 }
 
@@ -173,7 +174,7 @@ void sendMessageHistoryToUser(const SOCKET& client) {
             if (c != count - 1) {
                 messageToSend += "1";
             }
-            else {
+            else  {
                 messageToSend += "0";
             }
             send(client, messageToSend.c_str(), messageToSend.size(), 0);
@@ -317,11 +318,27 @@ bool isDuplicated(const string& name) {
  * @param client which client to send
  */
 void sendClientAllUserNames(SOCKET client) {
-    string usernames;
-    for (int i = 0; i < allClientObjects.size(); i++) {
-        usernames += allClientObjects[i].getClientName() + "/";
+    
+    int count = getActiveClientAmount();
+	cout << "Active client amount: " << count << endl;
+    for (int i = 0, c = 0; i < allClientObjects.size(); i++) {
+        string nameToSend = allClientObjects[i].getClientName();
+        if (c == count - 1) {
+            nameToSend += "0";
+            send(client, nameToSend.c_str(), nameToSend.length(), 0);
+            char read;
+            recv(client, &read, 1, 0);
+        }
+        else {
+            nameToSend += "1";
+            c++;
+            send(client, nameToSend.c_str(), nameToSend.length(), 0);
+            char read;
+            recv(client, &read, 1, 0);
+        }	
     }
-    send(client, usernames.c_str(), usernames.length(), 0);
+	char done = '1';
+	send(client, &done, sizeof(done), 0);
 }
 
 /**
