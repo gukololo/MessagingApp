@@ -12,7 +12,7 @@ using namespace std;
  * function to print options to user
  */
 void printMenu() {
-        cout<< "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history \n6.Disconnect (NOT AVAILABLE!)\nWhat do you want to do? "<<endl;
+    cout << "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all available users\n5.See my message history \n6.Disconnect (NOT AVAILABLE!)\nWhat do you want to do? " << endl;
 }
 
 /**
@@ -21,6 +21,9 @@ void printMenu() {
  * TODO:
  */
 void openOfflineMode(SOCKET client) {
+    //taking done signal from the server
+    char start;
+    recv(client, &start, sizeof(start), 0);
     cout << "Disconnected. Type /return to return." << endl;
     string back;
     while (back != "/return") {
@@ -29,10 +32,28 @@ void openOfflineMode(SOCKET client) {
             cout << "Invalid comment." << endl;
         }
     }
-    char online ='1';
-    send(client, &online, 1, 0);
+    cout << "\nReconnecting to the server!" << endl;
+    char end = '1';
+    send(client, &end, 1, 0);
+    char finish;
+    recv(client, &finish, sizeof(finish), 0);
 }
+void displayActiveClients(SOCKET clientSocket) {
+    char buffer[1024]; //char array to receive messages
+    //receiving all the names of clients
+    memset(buffer, 0, sizeof(buffer));
+    recv(clientSocket, buffer, sizeof(buffer), 0);
+    string activeClientNames = buffer;
 
+    //dividing the received names string and displaying
+    stringstream ss(activeClientNames);
+    string singleName;
+    int count = 0;
+    while (getline(ss, singleName, '/')) {
+        cout << ++count << "." << singleName << endl;
+    }
+    cout << endl;
+}
 /**
  * if the input action is not valid this method is used to take input again
  * @return valid action input
@@ -53,7 +74,7 @@ void receiveAndDisplayUnseenMessages(SOCKET client) {
     char buffer[1024]; //char array to receive messages
     bool terminate = false; //boolean that depends on if the received message is the last one
 
-    while (!terminate ) {
+    while (!terminate) {
 
         //receiving message
         memset(buffer, 0, sizeof(buffer));
@@ -62,10 +83,12 @@ void receiveAndDisplayUnseenMessages(SOCKET client) {
 
         //determine if it is the last one
         if (msg.back() == '0')
-        {terminate = true;}
+        {
+            terminate = true;
+        }
 
         //display the message
-        cout << msg.substr(0,msg.size() - 1 )<< endl;
+        cout << msg.substr(0, msg.size() - 1) << endl;
 
         //giving feedback
         string feedback = "read";
@@ -85,7 +108,7 @@ void receiveAndDisplayHistory(SOCKET client) {
     char buffer[1024]; //char array to receive messages
     bool terminate = false; //boolean that depends on if the received message is the last one
 
-    while (!terminate ) {
+    while (!terminate) {
 
         //receiving message
         memset(buffer, 0, sizeof(buffer));
@@ -94,10 +117,12 @@ void receiveAndDisplayHistory(SOCKET client) {
 
         //determine if it is the last one
         if (msg.back() == '0')
-        {terminate = true;}
+        {
+            terminate = true;
+        }
 
         //display the message
-        cout << msg.substr(0,msg.size() - 1 )<< endl;
+        cout << msg.substr(0, msg.size() - 1) << endl;
 
         //giving feedback
         string feedback = "read";
@@ -113,7 +138,7 @@ void receiveAndDisplayHistory(SOCKET client) {
  * @param client client to display
  */
 void displayMessages(SOCKET client) {
-    char buffer [1024];
+    char buffer[1024];
     while (true) {
         //receiving messages
         memset(buffer, 0, sizeof(buffer));
@@ -129,8 +154,8 @@ void displayMessages(SOCKET client) {
 
 int main() {
 
-     //for receiving strings from server
-     char buffer[1024];
+    //for receiving strings from server
+    char buffer[1024];
 
     //creating client socket
     WSADATA wsa;
@@ -150,7 +175,7 @@ int main() {
     recv(clientSocket, &readyToStart, sizeof(readyToStart), 0);
 
     //if server is full
-    if (readyToStart == '0'  ) {
+    if (readyToStart == '0') {
 
         cout << "Cannot connect to the server, it is full. Try another time!" << endl;
         closesocket(clientSocket);
@@ -158,13 +183,13 @@ int main() {
         return 0;
     }
 
-    else{
-        cout  << endl;
-        cout<< "Welcome to server." << endl;
+    else {
+        cout << endl;
+        cout << "Welcome to server." << endl;
 
         //getting the username from the user
         string name;
-        cout<<"Enter username: ";
+        cout << "Enter username: ";
         getline(cin, name);
 
         //sending the name we choose and sending it to the server
@@ -176,19 +201,19 @@ int main() {
 
         //if duplicated taking username input again
         while (isDuplicated == '1') {
-        cout << endl;
-        cout<<"This username already exists. Try again!" << endl;
-        cout<<"Enter username: ";
-        getline(cin, name);
+            cout << endl;
+            cout << "This username already exists. Try again!" << endl;
+            cout << "Enter username: ";
+            getline(cin, name);
 
-        //sending the name we choose and sending it to the server
-        send(clientSocket, name.c_str(), name.length(), 0);
+            //sending the name we choose and sending it to the server
+            send(clientSocket, name.c_str(), name.length(), 0);
 
-        //taking duplicated answer again
-        recv(clientSocket, &isDuplicated, sizeof(isDuplicated), 0);
-    }
+            //taking duplicated answer again
+            recv(clientSocket, &isDuplicated, sizeof(isDuplicated), 0);
+        }
         if (isDuplicated == '0') {
-            cout <<"You are registered successfully!"<< endl;
+            cout << "You are registered successfully!" << endl;
         }
 
         //registration is successful
@@ -202,17 +227,17 @@ int main() {
         getline(cin, action);
 
         //if the input is invalid
-        while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6" ) {
-           action = retakeAction();
+        while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6") {
+            action = retakeAction();
         }
 
 
         send(clientSocket, action.c_str(), action.length(), 0);
 
-        while (action == "1" || action == "2" || action == "3" || action == "4" || action == "5" || action == "6" ) {
+        while (action == "1" || action == "2" || action == "3" || action == "4" || action == "5" || action == "6") {
 
             //1: Messaging Mode
-            if (action == "1" ) {
+            if (action == "1") {
                 cout << "Opening message mode. Type /exit to exit." << endl;
                 char isDestinationEmpty;
                 recv(clientSocket, &isDestinationEmpty, sizeof(isDestinationEmpty), 0);
@@ -221,7 +246,7 @@ int main() {
                 while (action == "1" && msg != "/exit") {
                     getline(cin, msg);
                     if (isDestinationEmpty == '1' && msg != "/exit") {
-                        cout << "Cannot send message, you have no destinations! "<< endl;
+                        cout << "Cannot send message, you have no destinations! " << endl;
                     }
                     else {
                         send(clientSocket, msg.c_str(), msg.length(), 0);
@@ -250,7 +275,7 @@ int main() {
 
 
                 //taking the input from the user
-                cout << "Who do you want to message? Enter as numbers with spaces: " <<endl;
+                cout << "Who do you want to message? Enter as numbers with spaces: " << endl;
                 getline(cin, destinations);
                 send(clientSocket, destinations.c_str(), destinations.length(), 0);
 
@@ -261,14 +286,14 @@ int main() {
 
                 //if the input is not valid, taking input until it is valid
                 while (validationAnswer == "no") {
-                    cout <<"Invalid input try again: "<<endl;
+                    cout << "Invalid input try again: " << endl;
                     getline(cin, destinations);
                     send(clientSocket, destinations.c_str(), destinations.length(), 0);
                     memset(buffer, 0, sizeof(buffer));
                     recv(clientSocket, buffer, sizeof(buffer), 0);
                     validationAnswer = buffer;
                 }
-                cout << "Your message destinations are set successfully !" << endl;
+                cout << "Your message destinations are sets successfully !" << endl;
             }
 
             //3: displaying unseen messages
@@ -278,20 +303,7 @@ int main() {
             }
             //4: displaying all the active clients
             if (action == "4") {
-
-                //receiving all the names of clients
-                memset(buffer, 0, sizeof(buffer));
-                recv(clientSocket, buffer, sizeof(buffer), 0);
-                string activeClientNames = buffer;
-
-                //dividing the received names string and displaying
-                stringstream ss(activeClientNames);
-                string singleName;
-                int count = 0;
-                while (getline(ss, singleName, '/')) {
-                    cout << ++count << "." << singleName << endl;
-                }
-                cout << endl;
+                displayActiveClients(clientSocket);
             }
             if (action == "5") {
                 receiveAndDisplayHistory(clientSocket);
@@ -304,14 +316,14 @@ int main() {
             }
             printMenu();
             getline(cin, action);
-            while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6" ) {
+            while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6") {
                 action = retakeAction();
             }
             send(clientSocket, action.c_str(), action.length(), 0);
 
         }
 
-}
+    }
     closesocket(clientSocket);
     WSACleanup();
     return 0;
