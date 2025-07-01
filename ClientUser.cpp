@@ -1,5 +1,6 @@
 #include <iostream>
 #include "ClientUser.h"
+#include <WinSock2.h>
 using namespace std;
 
 ClientUser::ClientUser() {
@@ -22,13 +23,15 @@ vector<int> ClientUser::getDestinations() const {
 bool ClientUser::getInMessageMode() const {
     return inMessageMode;
 }
-
+SOCKET ClientUser::getClientSocket() const {
+    return clientSocket;
+}
 //setters
 void ClientUser::setClientName(const string &s) {clientName = s;}
 void ClientUser::setIsActive(const bool b) {isActive = b;}
 void ClientUser::setDestinations(const vector<int> &d) {destinations = d;}
 void ClientUser::setInMessageMode(const bool b) {inMessageMode = b;}
-
+void ClientUser::setClientSocket(const SOCKET &s) {clientSocket = s;}
 
 
 

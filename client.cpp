@@ -46,19 +46,26 @@ void displayActiveClients(SOCKET clientSocket) {
     char buffer[1024];
     int count = 0;
 	bool terminate = false;
+	//receiving all active clients from the server
     while (!terminate) {
 		memset(buffer, 0, sizeof(buffer));
         recv(clientSocket, buffer, sizeof(buffer), 0);
         string receivedUsername = buffer;
         count++;
+        
+		//printing the received username
         cout << count << "." << receivedUsername.substr(0, receivedUsername.size() - 1) << endl;
+        
+		//feedback to the server that we received the username
         char read = '1';
         send(clientSocket, &read, 1, 0);
+		//checking if it is the last username
         if(receivedUsername.back() == '0') {
             terminate = true;
 		}
         
     }
+	//sending end signal to the server
     char done;
 	recv(clientSocket, &done, sizeof(done), 0);
 }
