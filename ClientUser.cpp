@@ -4,7 +4,6 @@ using namespace std;
 
 ClientUser::ClientUser() {
     clientName = "";
-    portNumber = -1;
     inMessageMode = false;
     isActive = false;
     destinations = vector<int>();
@@ -13,9 +12,6 @@ ClientUser::ClientUser() {
 //getters
 string ClientUser::getClientName() const {
     return clientName;
-}
-int ClientUser::getPortNumber() const {
-    return portNumber;
 }
 bool ClientUser::getIsActive() const {
     return isActive;
@@ -29,7 +25,6 @@ bool ClientUser::getInMessageMode() const {
 
 //setters
 void ClientUser::setClientName(const string &s) {clientName = s;}
-void ClientUser::setPortNumber(const int i) {portNumber = i;}
 void ClientUser::setIsActive(const bool b) {isActive = b;}
 void ClientUser::setDestinations(const vector<int> &d) {destinations = d;}
 void ClientUser::setInMessageMode(const bool b) {inMessageMode = b;}

@@ -16,7 +16,7 @@ vector<SOCKET> allClientSockets; //stores all client sockets
 vector<ClientUser> allClientObjects; //stores all ClientUser objects
 vector<Message> AllMessages; //stores all the message objects
 vector<Message>allUnseenMessages; //stores all unseen messages
-
+int state = 0; //state of the server, it is used to determine which process is being applied
 
 /**
  * method for getting to amount of online users
@@ -377,7 +377,7 @@ void handleChoosingDestinations(SOCKET client_socket) {
  * @param state which state
  * TODO:
  */
-void handleDisconnect(SOCKET client, const int state) {
+void handleDisconnect(SOCKET client) {
     if (state == 1) {
     }
     else if (state == 2) {
@@ -401,16 +401,7 @@ void handle_client_all(SOCKET client_socket) {
     //a char array for receiving messages
     char buffer[1024];
     int bytes;
-    //first it will send feedback to clients to decide whether they can continue
-    char readyToStart;
-    if (getActiveClientAmount() >= 3) {
-        readyToStart = '0';
-    }
-    else {
-        readyToStart = '1';
-    }
-    send(client_socket, &readyToStart, sizeof(readyToStart), 0);
-
+    
     //receiving the username
     string receivedName;
     memset(buffer, 0, sizeof(buffer));
@@ -440,6 +431,15 @@ void handle_client_all(SOCKET client_socket) {
     duplicatedAnswer = '0';
     send(client_socket, &duplicatedAnswer, sizeof(duplicatedAnswer), 0);
 
+    //send feedback to clients to decide whether they can continue
+    char readyToStart;
+    if (getActiveClientAmount() >= 3) {
+        readyToStart = '0';
+    }
+    else {
+        readyToStart = '1';
+    }
+    send(client_socket, &readyToStart, sizeof(readyToStart), 0);
     //registering the new client
     ClientUser newClient;
     newClient.setClientName(receivedName);

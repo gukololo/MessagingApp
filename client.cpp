@@ -38,9 +38,6 @@ void openOfflineMode(SOCKET client) {
     recv(client, &finish, sizeof(finish), 0);
 }
 
-
-
-
 /**
 * method for displaying active clients
 */
@@ -163,7 +160,6 @@ void displayMessages(SOCKET client) {
     }
 }
 
-
 int main() {
 
     //for receiving strings from server
@@ -182,20 +178,7 @@ int main() {
 
     connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
-    //then checking if it is available to connect
-    char readyToStart;
-    recv(clientSocket, &readyToStart, sizeof(readyToStart), 0);
 
-    //if server is full
-    if (readyToStart == '0') {
-
-        cout << "Cannot connect to the server, it is full. Try another time!" << endl;
-        closesocket(clientSocket);
-        WSACleanup();
-        return 0;
-    }
-
-    else {
         cout << endl;
         cout << "Welcome to server." << endl;
 
@@ -224,12 +207,22 @@ int main() {
             //taking duplicated answer again
             recv(clientSocket, &isDuplicated, sizeof(isDuplicated), 0);
         }
-        if (isDuplicated == '0') {
-			cout << endl;
-            cout << "You are registered successfully!" << endl;
+
+        //then checking if it is available to connect
+        char readyToStart;
+        recv(clientSocket, &readyToStart, sizeof(readyToStart), 0);
+
+        //if server is full
+        if (readyToStart == '0') {
+            cout << "Cannot connect to the server, it is full. Try another time!" << endl;
+            closesocket(clientSocket);
+            WSACleanup();
+            return 0;
         }
 
         //registration is successful
+        cout << endl;
+        cout << "You are registered successfully!" << endl;
         cout << "Connected to server!" << endl;
         cout << endl;
         //after registration, the new port number is received and the communication is changing according to the new port number
@@ -306,14 +299,15 @@ int main() {
                 cout << endl;
 
             }
+			//5: displaying message history
             if (action == "5") {
                 receiveAndDisplayHistory(clientSocket);
                 cout << endl;
             }
+			//6: disconnect mode
             if (action == "6") {
                 openOfflineMode(clientSocket);
                 cout << endl;
-
             }
             printMenu();
             getline(cin, action);
@@ -325,7 +319,7 @@ int main() {
 
         }
 
-    }
+    
     closesocket(clientSocket);
     WSACleanup();
     return 0;
