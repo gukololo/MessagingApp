@@ -160,7 +160,7 @@ void displayMessages(SOCKET client) {
         memset(buffer, 0, sizeof(buffer));
         recv(client, buffer, sizeof(buffer), 0);
         string msg = buffer;
-        if (msg == "/exit/")
+        if (msg == "/*/exit/*/")
             return;
         //display
         cout << msg << endl;

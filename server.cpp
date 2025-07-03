@@ -5,16 +5,47 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <ctime>
 #include "ClientUser.h"
 #include "Message.h"
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
-//stores
+//storages
 vector<ClientUser> allClientObjects; //stores all ClientUser objects
 vector<Message> AllMessages; //stores all the message objects
 vector<Message>allUnseenMessages; //stores all unseen messages
 int state = 0; //state of the server, it is used to determine which process is being applied
+
+/**
+ * a method for receiving strings from the client, it handles the socket errors
+ * @param s string to store the received string
+ * @param client_socket client socket to handle
+ */
+void enhancedRcv(string& s, SOCKET client_socket) {
+
+	char buffer[1024];
+	int bytesReceived = 0;
+	memset(buffer, 0, sizeof(buffer));
+	bytesReceived = recv(client_socket, buffer, sizeof(buffer), 0);
+    if (bytesReceived <= 0) {
+        closesocket(client_socket);
+    }
+    else {
+        s = buffer;
+    }
+}
+/**
+ * a method for sending strings to the client, it handles the socket errors
+ * @param s string to send
+ * @param client_socket client socket to handle
+ */
+void enhancedSend(const string& s, SOCKET client_socket) {
+    int bytesSent = send(client_socket, s.c_str(), s.length(), 0);
+    if (bytesSent <= 0) {
+        closesocket(client_socket);
+    }
+}
 
 /**
  * method for getting to amount of online users
@@ -42,6 +73,32 @@ int getClientIndex(SOCKET client) {
     }
     return -1;
 }
+
+/**
+ * Returns the current hour and minute in the format [HH:MM]
+ * @return string in the form [hour:minute]
+ */
+string getHourAndMinute() {
+  
+    time_t now = time(0);
+    tm timeInfo;
+    localtime_s(&timeInfo, &now); 
+
+    int hour = timeInfo.tm_hour;
+    int minute = timeInfo.tm_min;
+
+    string hourStr = to_string(hour);
+    string minStr = to_string(minute);
+
+    if (hour < 10) hourStr = "0" + hourStr;
+    if (minute < 10) minStr = "0" + minStr;
+
+    string result = "[" + hourStr + ":" + minStr + "] ";
+    return result;
+
+}
+
+
 
 /**
  * a helper method which determines if a string is capable to convert to an integer
@@ -115,6 +172,9 @@ void handleMessagingMode(SOCKET client_socket) {
             //storing message
             int destinationIndex = allClientObjects[clientIndex].getDestinations()[i];
             Message newMessage;
+			//getting the hour and minute
+			string time = getHourAndMinute();
+			newMessage.setTime(time);
             newMessage.setDestination(allClientObjects[destinationIndex].getClientName());
             newMessage.setSender(allClientObjects[clientIndex].getClientName());
             newMessage.setMessage(msg);
@@ -123,11 +183,11 @@ void handleMessagingMode(SOCKET client_socket) {
             if (!allClientObjects[destinationIndex].getInMessageMode()) {
                 allUnseenMessages.push_back(newMessage);
                 //displaying in server
-                cout << "Unseen message: " << newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
+               // cout << "Unseen message: " << newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
             }
             else {
-                string messageToSend = newMessage.getSender() + ": " + newMessage.getMessage();
-                cout << newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
+                string messageToSend = newMessage.getTime() + newMessage.getSender() + ": " + newMessage.getMessage();
+                //cout << newMessage.getTime() + newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
                 //sending the message
                 send(allClientObjects[destinationIndex].getClientSocket(), messageToSend.c_str(), messageToSend.length(), 0);
             }
@@ -136,7 +196,7 @@ void handleMessagingMode(SOCKET client_socket) {
       
     }
 	//if the user exits the messaging mode, we send a signal to stop the messaging mode
-    string finish = "/exit/";
+    string finish = "/*/exit/*/";
     send(client_socket, finish.c_str(), strlen(finish.c_str()), 0);
 	//setting the messaging mode to false
     allClientObjects[clientIndex].setInMessageMode(false);
@@ -169,7 +229,7 @@ void sendMessageHistoryToUser(const SOCKET& client) {
     int c = 0;
     for (int i = 0; i < AllMessages.size(); i++) {
         if (AllMessages[i].getSender() == clientName || AllMessages[i].getDestination() == clientName) {
-            string messageToSend = AllMessages[i].getSender() + "->" + AllMessages[i].getDestination() + ": " + AllMessages[i].getMessage();
+            string messageToSend = AllMessages[i].getTime() + AllMessages[i].getSender() + "->" + AllMessages[i].getDestination() + ": " + AllMessages[i].getMessage();
             if (c != count - 1) {
                 messageToSend += "1";
             }
@@ -213,7 +273,7 @@ bool sendUnseenMessagesToUser(SOCKET client_socket) {
         if (allUnseenMessages[k].getDestination() == destinationName && c < count - 1) {
 
             //if it is not the last message, the server puts '1' to the end
-            string msg = allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '1';
+            string msg = allUnseenMessages[k].getTime() + allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '1';
             send(client_socket, msg.c_str(), msg.length(), 0);
             c++;
 
@@ -229,7 +289,7 @@ bool sendUnseenMessagesToUser(SOCKET client_socket) {
         //last message to send
         else if (allUnseenMessages[k].getDestination() == destinationName && c == count - 1) {
             //if last it puts '0' to end of the message
-            string msg = allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '0';
+            string msg = allUnseenMessages[k].getTime() + allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '0';
             send(client_socket, msg.c_str(), msg.length(), 0);
 
             //after sending the message, the server deletes it from unseen messages
