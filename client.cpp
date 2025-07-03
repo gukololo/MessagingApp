@@ -12,7 +12,7 @@ using namespace std;
  * function to print options to user
  */
 void printMenu() {
-    cout << "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all online users\n5.See my message history \n6.Disconnect \nWhat do you want to do? " << endl;
+    cout << "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all online users\n5.See my message history \n6.Disconnect from server\nWhat do you want to do? " << endl;
 }
 
 /**
@@ -158,7 +158,10 @@ void displayMessages(SOCKET client) {
     while (true) {
         //receiving messages
         memset(buffer, 0, sizeof(buffer));
-        recv(client, buffer, sizeof(buffer), 0);
+        int recv = (client, buffer, sizeof(buffer), 0);
+        if (recv <= 0) {
+            break;
+        }
         string msg = buffer;
         if (msg == "/*/exit/*/")
             return;
@@ -209,8 +212,10 @@ int main() {
             getline(cin, name);
 
             //sending the name we choose and sending it to the server
-            send(clientSocket, name.c_str(), name.length(), 0);
-
+            int bytes = send(clientSocket, name.c_str(), name.length(), 0);
+            if (bytes <= 0) {
+                break;
+            }
             //taking duplicated answer again
             recv(clientSocket, &isDuplicated, sizeof(isDuplicated), 0);
         }
@@ -241,7 +246,7 @@ int main() {
 		cout << endl;
 
         //if the input is invalid
-        while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6") {
+        while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6" ) {
             action = retakeAction();
         }
 
@@ -263,7 +268,10 @@ int main() {
                         cout << "Cannot send message, you have no destinations! " << endl;
                     }
                     else {
-                        send(clientSocket, msg.c_str(), msg.length(), 0);
+                        int bytes = send(clientSocket, msg.c_str(), msg.length(), 0);
+                        if (bytes <= 0) {
+                            break;
+                        }
                     }
                 }
             }
@@ -276,7 +284,10 @@ int main() {
                 string destinations;
                 cout << "Who do you want to message? Enter as numbers with spaces: " << endl;
                 getline(cin, destinations);
-                send(clientSocket, destinations.c_str(), destinations.length(), 0);
+                int bytes = send(clientSocket, destinations.c_str(), destinations.length(), 0);
+                if (bytes <= 0) {
+                    break;
+                }
 
                 //receiving answer for validation
                 memset(buffer, 0, sizeof(buffer));
@@ -287,7 +298,10 @@ int main() {
                 while (validationAnswer == "no") {
                     cout << "Invalid input try again: " << endl;
                     getline(cin, destinations);
-                    send(clientSocket, destinations.c_str(), destinations.length(), 0);
+                    int bytes = send(clientSocket, destinations.c_str(), destinations.length(), 0);
+                    if (bytes <= 0) {
+                        break;
+                    }
                     memset(buffer, 0, sizeof(buffer));
                     recv(clientSocket, buffer, sizeof(buffer), 0);
                     validationAnswer = buffer;
@@ -316,14 +330,17 @@ int main() {
                 openOfflineMode(clientSocket);
                 cout << endl;
             }
+           
             printMenu();
             getline(cin, action);
 			cout << endl;
             while (action != "1" && action != "2" && action != "3" && action != "4" && action != "5" && action != "6") {
                 action = retakeAction();
             }
-            send(clientSocket, action.c_str(), action.length(), 0);
-
+            int bytes = send(clientSocket, action.c_str(), action.length(), 0);
+            if (bytes <= 0) {
+                break;
+            }
         }
 
     
