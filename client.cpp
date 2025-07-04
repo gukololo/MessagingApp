@@ -158,8 +158,8 @@ void displayMessages(SOCKET client) {
     while (true) {
         //receiving messages
         memset(buffer, 0, sizeof(buffer));
-        int recv = (client, buffer, sizeof(buffer), 0);
-        if (recv <= 0) {
+        int bytes =  recv(client, buffer, sizeof(buffer), 0);
+        if (bytes  <= 0) {
             break;
         }
         string msg = buffer;
