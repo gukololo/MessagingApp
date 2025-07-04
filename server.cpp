@@ -15,6 +15,7 @@ using namespace std;
 vector<ClientUser> allClientObjects; //stores all ClientUser objects
 vector<Message> AllMessages; //stores all the message objects
 vector<Message>allUnseenMessages; //stores all unseen messages
+vector <string> allUserNames; //stores all usernames
 int state = 0; //state of the server, it is used to determine which process is being applied
 
 /**
@@ -456,8 +457,8 @@ bool isDestinationsValid(const string& destinations, const SOCKET client_socket)
  * @return if exists or not
  */
 bool isDuplicated(const string& name) {
-    for (int i = 0; i < allClientObjects.size(); i++) {
-        if (allClientObjects[i].getClientName() == name) {
+    for (int i = 0; i < allUserNames.size(); i++) {
+        if (allUserNames[i] == name) {
             return true;
         }
     }
@@ -581,6 +582,7 @@ void handle_client_all(SOCKET client_socket) {
 
     //registering the new client
     ClientUser newClient;
+	allUserNames.push_back(receivedName);
     newClient.setClientName(receivedName);
     newClient.setIsActive(true);
 	newClient.setInMessageMode(false);

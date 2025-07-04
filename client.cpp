@@ -264,11 +264,12 @@ int main() {
                 thread(displayMessages, clientSocket).detach();
                 while (action == "1" && msg != "/exit") {
                     getline(cin, msg);
-                    if (isDestinationEmpty == '1' && msg != "/exit") {
-                        cout << "Cannot send message, you have no destinations! " << endl;
-                    }
-                    else if (msg.empty()) {
+                    
+                    if (msg.empty()) {
 						cout << "Cannot send an empty message!" << endl;
+                    }
+                    else if (isDestinationEmpty == '1' && msg != "/exit") {
+                        cout << "Cannot send message, you have no destinations! " << endl;
                     }
                     else {
                         int bytes = send(clientSocket, msg.c_str(), msg.length(), 0);
