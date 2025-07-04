@@ -267,6 +267,9 @@ int main() {
                     if (isDestinationEmpty == '1' && msg != "/exit") {
                         cout << "Cannot send message, you have no destinations! " << endl;
                     }
+                    else if (msg.empty()) {
+						cout << "Cannot send an empty message!" << endl;
+                    }
                     else {
                         int bytes = send(clientSocket, msg.c_str(), msg.length(), 0);
                         if (bytes <= 0) {
