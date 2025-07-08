@@ -8,6 +8,9 @@
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
+/**
+ * Enum to represent the different states of the client
+ */
 enum class State {
 	REGISTER,
 	MENU,
@@ -19,12 +22,13 @@ enum class State {
 	DISCONNECT,
 	TERMINATE
 };
+// Global variable to keep track of the current state
 State currentState;
 
 /**
  * function to print options to user
  */
-void printMenu() {
+static void printMenu() {
 	cout << "1.Open messaging mode\n2.Choose users to send message\n3.Check for unseen messages\n4.See all online users\n5.See my message history \n6.Disconnect from server\nWhat do you want to do? " << endl;
 }
 
@@ -32,7 +36,7 @@ void printMenu() {
  * This function handles the offline mode, it allows the user to disconnect and return later
  * @param client client socket to handle
  */
-void openOfflineMode(SOCKET client) {
+static void openOfflineMode(SOCKET client) {
 	//taking done signal from the server
 	int bytes;
 	char start;
@@ -49,7 +53,6 @@ void openOfflineMode(SOCKET client) {
 			cout << "Invalid comment." << endl;
 		}
 	}
-	cout << "\nReconnecting to the server!" << endl;
 	char end = '1';
 	bytes = send(client, &end, 1, 0);
 	if (bytes <= 0) {
@@ -62,13 +65,21 @@ void openOfflineMode(SOCKET client) {
 		currentState = State::TERMINATE;
 		return;
 	}
+	
+	if (finish == '0') {
+		cout << "Cannot reconnect, the server is full! " << endl;
+		currentState = State::TERMINATE;
+		return;
+	}
+	cout << "\nReconnecting to the server!" << endl;
+
 	currentState = State::MENU; 
 }
 /**
  * This function displays all active clients and allows the user to choose one
  * @param clientSocket client socket to handle
  */
-void displayActiveClients(SOCKET clientSocket) {
+static void displayActiveClients(SOCKET clientSocket) {
 
 	char buffer[1024];
 	int count = 0;
@@ -103,9 +114,8 @@ void displayActiveClients(SOCKET clientSocket) {
 /**
  * This function handles the process of choosing destinations, it sends all available usernames to the user and checks if the input is valid
  * @param clientSocket client socket to handle
- * @return if successful or not
  */
-void handleChoosingDestinations(SOCKET clientSocket) {
+static void handleChoosingDestinations(SOCKET clientSocket) {
 
 	char buffer[1024];
 	displayActiveClients(clientSocket);
@@ -147,7 +157,7 @@ void handleChoosingDestinations(SOCKET clientSocket) {
  * if the input action is not valid this method is used to take input again
  * @return valid action input
  */
-string retakeAction() {
+static string retakeAction() {
 	string action;
 	cout << "Your choice is invalid. Please enter a valid action (1-2-3-4-5-6)!" << endl;
 	printMenu();
@@ -160,7 +170,7 @@ string retakeAction() {
  * method to display coming messages in the message mode
  * @param client client to display
  */
-void displayMessages(SOCKET client) {
+static void displayMessages(SOCKET client) {
 	char buffer[1024];
 	while (true) {
 		//receiving messages
@@ -180,7 +190,7 @@ void displayMessages(SOCKET client) {
  * This function handles the messaging mode, it allows the user to send messages to chosen destinations
  * @param clientSocket client socket to handle
  */
-void handleMessagingMode(SOCKET clientSocket) {
+static void handleMessagingMode(SOCKET clientSocket) {
 	cout << "Opening message mode. Type /exit to exit." << endl;
 	char isDestinationEmpty;
 	recv(clientSocket, &isDestinationEmpty, sizeof(isDestinationEmpty), 0);
@@ -209,7 +219,7 @@ void handleMessagingMode(SOCKET clientSocket) {
  * this method is for receiving and displaying unseen messages in the third option
  * @param client client socket to display
  */
-void receiveAndDisplayUnseenMessages(SOCKET client) {
+static void receiveAndDisplayUnseenMessages(SOCKET client) {
 
 	char buffer[1024]; //char array to receive messages
 	bool terminate = false; //boolean that depends on if the received message is the last one
@@ -245,7 +255,7 @@ void receiveAndDisplayUnseenMessages(SOCKET client) {
  * this method applies in the 5th option where the user receives the message history
  * @param client client to handle
  */
-void receiveAndDisplayHistory(SOCKET client) {
+static void receiveAndDisplayHistory(SOCKET client) {
 
 	char buffer[1024]; //char array to receive messages
 	bool terminate = false; //boolean that depends on if the received message is the last one
@@ -281,7 +291,7 @@ void receiveAndDisplayHistory(SOCKET client) {
  * This function handles the menu mode, it displays the menu and takes the action from the user
  * @param clientSocket client socket to handle
  */
-void handleMenuMode(SOCKET clientSocket) {
+static void handleMenuMode(SOCKET clientSocket) {
 	string action;
 	printMenu();
 	getline(cin, action);
@@ -323,7 +333,7 @@ void handleMenuMode(SOCKET clientSocket) {
  * This function handles the registration mode, it takes the username from the user and sends it to the server
  * @param clientSocket client socket to handle
  */
-void handleRegisterMode(SOCKET clientSocket) {
+static void handleRegisterMode(SOCKET clientSocket) {
 	int bytes;
 	cout << endl;
 	cout << "Welcome to server." << endl;
@@ -392,28 +402,26 @@ void handleRegisterMode(SOCKET clientSocket) {
 }
 int main() {
 
-	//for receiving strings from server
-	char buffer[1024];
-
 	//creating client socket
 	WSADATA wsa;
-	WSAStartup(MAKEWORD(2, 2), &wsa);
+	int result = WSAStartup(MAKEWORD(2, 2), &wsa);
 	SOCKET clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 
 	//server address
-	sockaddr_in server_addr;
+	sockaddr_in server_addr{};
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(8080);
 	inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
 
+	//connecting to the server
 	connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
+
 	currentState = State::REGISTER; //set initial state to REGISTER
-	while (true) {
+	while (true && result == 0) {
 
 		switch (currentState)
 		{
-
 		case State::REGISTER:
 			handleRegisterMode(clientSocket);
 			break;
@@ -427,32 +435,25 @@ int main() {
 			break;
 
 		case State::CHOOSE_DESTINATION: 
-
 			handleChoosingDestinations(clientSocket);
 			break;
-		
 
 		case State::UNSEEN_MESSAGES:
-
 			receiveAndDisplayUnseenMessages(clientSocket);
 			break;
 		
-
 		case State::ACTIVE_USERS:
-
 			displayActiveClients(clientSocket);
 			break;
-		
 
 		case State::MESSAGE_HISTORY:{
-			
 			receiveAndDisplayHistory(clientSocket);
 			break;
 		}
 
 		case State::DISCONNECT: 
 			openOfflineMode(clientSocket);
-				break;
+			break;
 			
 		case State::TERMINATE:
 			closesocket(clientSocket);
@@ -462,7 +463,4 @@ int main() {
 			break;
 		}
 	}
-	closesocket(clientSocket);
-	WSACleanup();
-	return 0;
 }

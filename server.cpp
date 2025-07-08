@@ -21,7 +21,7 @@ vector <string> allUserNames; //stores all usernames
  * @param client given client socket
  * @return index
  */
-int getClientIndex(SOCKET client) {
+static int getClientIndex(SOCKET client) {
     for (int i = 0; i < allClientObjects.size(); i++) {
         if (allClientObjects[i].getClientSocket() == client) {
             return i;
@@ -33,7 +33,7 @@ int getClientIndex(SOCKET client) {
  * a method for deleting a client from the storage, it finds the client by its socket
  * @param client_socket client socket to delete
  */
-void deleteClient(SOCKET client_socket) {
+static void deleteClient(SOCKET client_socket) {
     //find the index of the client in the storage
     int index = getClientIndex(client_socket);
 
@@ -62,7 +62,7 @@ void deleteClient(SOCKET client_socket) {
  * @param client_socket client socket to handle
  * @return if successful or not
  */
-bool enhancedRecvStr(string& s, SOCKET client_socket) {
+static bool enhancedRecvStr(string& s, SOCKET client_socket) {
 
 	char buffer[1024];
 	int bytesReceived = 0;
@@ -84,7 +84,7 @@ bool enhancedRecvStr(string& s, SOCKET client_socket) {
  * @param client_socket client socket to handle
  * @return if successful or not
  */
-bool enhancedRecvChar(char& c, SOCKET client_socket) {
+static bool enhancedRecvChar(char& c, SOCKET client_socket) {
     int bytesReceived = recv(client_socket, &c, sizeof(c), 0);
     if (bytesReceived <= 0) {
         deleteClient(client_socket);
@@ -100,7 +100,7 @@ bool enhancedRecvChar(char& c, SOCKET client_socket) {
  * @param client_socket client socket to handle
  * @return if successful or not
  */
-bool enhancedSendStr(const string& s, SOCKET client_socket) {
+static bool enhancedSendStr(const string& s, SOCKET client_socket) {
     int bytesSent = send(client_socket, s.c_str(), s.length(), 0);
     if (bytesSent <= 0) {
         deleteClient(client_socket);
@@ -118,7 +118,7 @@ bool enhancedSendStr(const string& s, SOCKET client_socket) {
  * @param client_socket client socket to handle
  * @return if successful or not
  */
-    bool enhancedSendChar(const char& c, SOCKET client_socket) {
+static bool enhancedSendChar(const char& c, SOCKET client_socket) {
         int bytesSent = send(client_socket, &c, sizeof(c), 0);
         if (bytesSent <= 0) {
             deleteClient(client_socket);
@@ -134,7 +134,7 @@ bool enhancedSendStr(const string& s, SOCKET client_socket) {
  * method for getting to amount of online users
  * @return count of active users
  */
-int getActiveClientAmount() {
+static int getActiveClientAmount() {
     int count = 0;
     for (const auto& allClientObject : allClientObjects) {
         if (allClientObject.getIsActive()) {
@@ -144,12 +144,11 @@ int getActiveClientAmount() {
     return count;
 }
 
-
 /**
  * Returns the current hour and minute in the format [HH:MM]
  * @return string in the form [hour:minute]
  */
-string getHourAndMinute() {
+static string getHourAndMinute() {
   
     time_t now = time(0);
     tm timeInfo;
@@ -169,14 +168,12 @@ string getHourAndMinute() {
 
 }
 
-
-
 /**
  * a helper method which determines if a string is capable to convert to an integer
  * @param str given string
  * @return if successful or not
  */
-bool isInteger(const string& str) {
+static bool isInteger(const string& str) {
     try {
         size_t pos;
         stoi(str, &pos);
@@ -192,7 +189,7 @@ bool isInteger(const string& str) {
  * @param client_socket client socket to handle
  * @return if successful or not
  */
-bool handleOfflineMode(SOCKET client_socket) {
+static bool handleOfflineMode(SOCKET client_socket) {
     cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " disconnected." << endl;
     int index = getClientIndex(client_socket);
     if(index == -1) {
@@ -205,8 +202,12 @@ bool handleOfflineMode(SOCKET client_socket) {
     char endDisconnectMode;
     if (!enhancedRecvChar(endDisconnectMode, client_socket)) {return false;}
       
-    char finish = '1';
 
+    char finish = '1';
+	int activeClients = getActiveClientAmount();
+    if (!(activeClients < 3)) {
+		finish = '0';
+    }
 	if(!enhancedSendChar(finish, client_socket)) { return false; }
 
   
@@ -220,9 +221,7 @@ bool handleOfflineMode(SOCKET client_socket) {
  * a method for handling the message mode for the given user
  * @param client_socket client socket to handle
  */
-bool handleMessagingMode(SOCKET client_socket) {
-
-    char buffer[1024];
+static bool handleMessagingMode(SOCKET client_socket) {
 
     //determining client index
     int clientIndex = getClientIndex(client_socket);
@@ -297,9 +296,8 @@ bool handleMessagingMode(SOCKET client_socket) {
  * this method sends message all message history to the user, if the user has no message history it sends a warning
  * @param client user to send
  */
-void sendMessageHistoryToUser(const SOCKET& client) {
+static void sendMessageHistoryToUser(const SOCKET& client) {
 
-    char buffer[1024];
     int index = getClientIndex(client);
     if (index == -1) {
         return;
@@ -344,7 +342,7 @@ void sendMessageHistoryToUser(const SOCKET& client) {
  * @param client_socket client to send
  * @return if there are no unseen messages it returns false else it returns true
  */
-bool sendUnseenMessagesToUser(SOCKET client_socket) {
+static bool sendUnseenMessagesToUser(SOCKET client_socket) {
 
     //name of the client socket
     string destinationName = allClientObjects[getClientIndex(client_socket)].getClientName();
@@ -359,7 +357,6 @@ bool sendUnseenMessagesToUser(SOCKET client_socket) {
     if (count == 0) {
         return false;
     }
-    char buffer[1024];
 
     //tracing the vector and sending suitable messages
     for (int k = 0, c = 0; k < allUnseenMessages.size(); ) {
@@ -408,7 +405,7 @@ bool sendUnseenMessagesToUser(SOCKET client_socket) {
  * @param client_socket client socket to apply this process
  * @return valid or not
  */
-bool isDestinationsValid(const string& destinations, const SOCKET client_socket) {
+static bool isDestinationsValid(const string& destinations, const SOCKET client_socket) {
 
     //dividing the received names string and displaying
     vector<string> allDestinations;
@@ -454,7 +451,7 @@ bool isDestinationsValid(const string& destinations, const SOCKET client_socket)
  * @param name given name
  * @return if exists or not
  */
-bool isDuplicated(const string& name) {
+static bool isDuplicated(const string& name) {
     for (int i = 0; i < allUserNames.size(); i++) {
         if (allUserNames[i] == name) {
             return true;
@@ -468,7 +465,7 @@ bool isDuplicated(const string& name) {
  *this method sends all available users to given client
  * @param client which client to send
  */
-void sendClientAllUserNames(SOCKET client) {
+static void sendClientAllUserNames(SOCKET client) {
 	
     int count = getActiveClientAmount();
     
@@ -501,8 +498,8 @@ void sendClientAllUserNames(SOCKET client) {
  * @param client_socket client socket to handle
  * @return if successful or not
  */
-bool handleChoosingDestinations(SOCKET client_socket) {
-    char buffer[1024];
+static bool handleChoosingDestinations(SOCKET client_socket) {
+
     //sending user the names
     sendClientAllUserNames(client_socket);
 
@@ -530,7 +527,7 @@ bool handleChoosingDestinations(SOCKET client_socket) {
  * method for all the handling process of a client
  * @param client_socket client socket to handle
  */
-void handle_client_all(SOCKET client_socket) {
+static void handle_client_all(SOCKET client_socket) {
     //a char array for receiving messages
     char buffer[1024];
     int bytes;
@@ -626,8 +623,7 @@ void handle_client_all(SOCKET client_socket) {
         }
         //disconnect
         else if (action == "6") {
-            if (!handleOfflineMode(client_socket)) {return;
-        }
+            if (!handleOfflineMode(client_socket)) {return;}
 
         }
 
