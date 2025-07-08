@@ -16,8 +16,6 @@ vector<ClientUser> allClientObjects; //stores all ClientUser objects
 vector<Message> AllMessages; //stores all the message objects
 vector<Message>allUnseenMessages; //stores all unseen messages
 vector <string> allUserNames; //stores all usernames
-int state = 0; //state of the server, it is used to determine which process is being applied
-
 /**
  * a helper method to determine the client index in the storage from the given client socket
  * @param client given client socket
@@ -465,7 +463,6 @@ bool isDuplicated(const string& name) {
     return false;
 
 }
-
 
 /**
  *this method sends all available users to given client
