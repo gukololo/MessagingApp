@@ -635,7 +635,7 @@ static void handle_client_all(SOCKET client_socket) {
 int main() {
 
     WSADATA wsa;
-    WSAStartup(MAKEWORD(2, 2), &wsa);
+    int connectionResult = WSAStartup(MAKEWORD(2, 2), &wsa);
 
     SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -653,7 +653,7 @@ int main() {
     listen(serverSocket, SOMAXCONN);
 
     cout << "Server started!" << endl;
-    while (true) {
+    while (true && connectionResult == 0) {
         //creating client socket
         sockaddr_in client_addr{};
         int client_size = sizeof(client_addr);
