@@ -414,7 +414,6 @@ static bool isDestinationsValid(const string& destinations, const SOCKET client_
     vector<string> allDestinations;
     stringstream ss(destinations);
     string singleDestination;
-	cout << "isDestinations: " << destinations <<endl;
     while (getline(ss, singleDestination, ' ')) {
         //checks if the index already exists
         if (!isInteger(singleDestination)) {
@@ -472,6 +471,19 @@ static void sendClientAllUserNames(SOCKET client) {
 	//scanning all clients and sending their names
     for (int i = 0, c = 0; i < allClientObjects.size(); i++) {
         string nameToSend = allClientObjects[i].getClientName();
+
+        if (allClientObjects[i].getInMessageMode()) {
+            nameToSend += " (In Message Mode)";
+        }
+        else if (allClientObjects[i].getIsActive()) {
+            nameToSend += " (In Menu)";
+        }
+        else if (!allClientObjects[i].getIsActive()) {
+            nameToSend += " (Disconnected)";
+        }
+
+
+
 		//if the client is the last one, it sends '0' to the end of the name
         if (c == allClientObjects.size() - 1) {
             nameToSend += "0";
@@ -507,7 +519,6 @@ static bool handleChoosingDestinations(SOCKET client_socket) {
     if (!enhancedRecvStr(destinations, client_socket)) {
 		return false;   
     }
-	cout << "Received destinations: " << destinations << endl;
     //checking if it is valid, this method adds destinations to storage if it is valid
     bool isValid = isDestinationsValid(destinations, client_socket);
     string destinationsValid;
