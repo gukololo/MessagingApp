@@ -37,12 +37,10 @@ static void printMenu() {
  * @param client client socket to handle
  */
 static void openOfflineMode(SOCKET client) {
-	//taking done signal from the server
-	int bytes;
 
 	//client receives a start signal to open offlline mode
 	char start;
-	bytes = recv(client, &start, sizeof(start), 0);
+	int bytes = recv(client, &start, sizeof(start), 0);
 	if(bytes <= 0) {
 		currentState = State::TERMINATE;
 		return;
@@ -123,19 +121,22 @@ static void displayActiveClients(SOCKET clientSocket) {
  */
 static void handleChoosingDestinations(SOCKET clientSocket) {
 
-	char buffer[1024];
+	//first we display all the clients
 	displayActiveClients(clientSocket);
+
 	//taking the input from the user
 	string destinations;
 	cout << "Who do you want to message? Enter as numbers with spaces: " << endl;
 	getline(cin, destinations);
-	int bytes = send(clientSocket, destinations.c_str(), destinations.length(), 0);
+	
+	int bytes = send(clientSocket, destinations.c_str(), static_cast <int>(destinations.length()), 0);
 	if (bytes <= 0) {
 		currentState = State::TERMINATE;
 		return;
 	}
 
 	//receiving answer for validation
+	char buffer[1024];//char array to receive messages
 	memset(buffer, 0, sizeof(buffer));
 	recv(clientSocket, buffer, sizeof(buffer), 0);
 	string validationAnswer = buffer;
@@ -144,7 +145,7 @@ static void handleChoosingDestinations(SOCKET clientSocket) {
 	while (validationAnswer == "no") {
 		cout << "Invalid input try again: " << endl;
 		getline(cin, destinations);
-		int bytes = send(clientSocket, destinations.c_str(), destinations.length(), 0);
+		int bytes = send(clientSocket, destinations.c_str(), static_cast <int>( destinations.length()), 0);
 		if (bytes <= 0) {
 			currentState = State::TERMINATE;
 			return;
@@ -340,7 +341,7 @@ static void handleMenuMode(SOCKET clientSocket) {
  * @param clientSocket client socket to handle
  */
 static void handleRegisterMode(SOCKET clientSocket) {
-	int bytes;
+	
 	cout << endl;
 	cout << "Welcome to server." << endl;
 
@@ -350,7 +351,7 @@ static void handleRegisterMode(SOCKET clientSocket) {
 	getline(cin, name);
 
 	//sending the name we choose and sending it to the server
-	bytes = send(clientSocket, name.c_str(), name.length(), 0);
+	int bytes = send(clientSocket, name.c_str(), name.length(), 0);
 	if( bytes <= 0) {
 		currentState = State::TERMINATE; //change state to TERMINATE
 		return;
@@ -462,6 +463,7 @@ int main() {
 			break;
 			
 		case State::TERMINATE:
+			cout << "Lost connection with the server. " << endl;
 			closesocket(clientSocket);
 			WSACleanup();
 			return 0;

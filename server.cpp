@@ -228,18 +228,15 @@ static bool handleMessagingMode(SOCKET client_socket) {
 
     //determining client index
     int clientIndex = getClientIndex(client_socket);
-    if(clientIndex == -1) {
-        return false;
-	}
+   
     //setting the messaging mode
     allClientObjects[clientIndex].setInMessageMode(true);
     
 	//determining if the user has no destinations
-    char isDestinationEmpty;
+    char isDestinationEmpty = '0';
     if (allClientObjects[clientIndex].getDestinations().size() == 0) {
         isDestinationEmpty = '1';
     }
-    else { isDestinationEmpty = '0'; }
 	//sending the information to the user
     if (!enhancedSendChar(isDestinationEmpty, client_socket)) {
 		return false;
@@ -466,8 +463,7 @@ static bool isDuplicated(const string& name) {
  * @param client which client to send
  */
 static void sendClientAllUserNames(SOCKET client) {
-	
-    
+	    
 	//scanning all clients and sending their names
     for (int i = 0, c = 0; i < allClientObjects.size(); i++) {
         string nameToSend = allClientObjects[i].getClientName();
@@ -481,8 +477,6 @@ static void sendClientAllUserNames(SOCKET client) {
         else if (!allClientObjects[i].getIsActive()) {
             nameToSend += " (Disconnected)";
         }
-
-
 
 		//if the client is the last one, it sends '0' to the end of the name
         if (c == allClientObjects.size() - 1) {
@@ -556,25 +550,19 @@ static void handle_client_all(SOCKET client_socket) {
     receivedName = buffer;
 
     //checking if it is duplicated
-    bool duplicated = isDuplicated(receivedName);
-    char duplicatedAnswer;
-
     //if it is duplicated, the server will send client the output
-    while (duplicated) {
+    while (isDuplicated(receivedName)) {
 
-        duplicatedAnswer = '1';
         //sending the duplicated answer
-        if (!enhancedSendChar(duplicatedAnswer, client_socket)) { return; }
+        if (!enhancedSendChar('1', client_socket)) { return; }
 
         //receiving a new name
 		if(!enhancedRecvStr(receivedName, client_socket)) { return; }
-        duplicated = isDuplicated(receivedName);
 
     }
 
     //if the username is not a duplicate we send this feedback to user
-    duplicatedAnswer = '0';
-	enhancedSendChar(duplicatedAnswer, client_socket);  
+	enhancedSendChar('0', client_socket);
 
     //send feedback to clients to decide whether they can continue
     char readyToStart;
