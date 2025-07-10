@@ -1,16 +1,16 @@
 @echo off
-cd /d "C:\Users\gurka\OneDrive\Desktop\MessagingApp\MessagingApp\x64\Debug"
+REM Bu dosyanın bulunduğu klasöre göre çalış
+set "baseDir=%~dp0"
+set "exeDir=%baseDir%x64\Debug"
+
+cd /d "%exeDir%"
 
 echo [INFO] Server başlatılıyor...
 start "" cmd /k "server.exe"
 
 echo [INFO] 1. Client başlatılıyor...
 start "" cmd /k "client.exe"
-
-echo [INFO] 2. Client başlatılıyor...
 start "" cmd /k "client.exe"
-
-echo [INFO] 3. Client başlatılıyor...
 start "" cmd /k "client.exe"
 
 exit
