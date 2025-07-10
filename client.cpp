@@ -56,12 +56,12 @@ static void openOfflineMode(SOCKET client) {
 
 	//sending back signal to the server
 	char endOfflineMode = '1';
+
 	bytes = send(client, &endOfflineMode, 1, 0);
 	if (bytes <= 0) {
 		currentState = State::TERMINATE;
 		return;
 	}
-
 	//receiving the finish signal from the server
 	char finish;
 	bytes = recv(client, &finish, sizeof(finish), 0);
@@ -76,7 +76,6 @@ static void openOfflineMode(SOCKET client) {
 		return;
 	}
 	cout << "\nReconnecting to the server!" << endl;
-
 	currentState = State::MENU; 
 }
 /**
@@ -159,7 +158,6 @@ static void handleChoosingDestinations(SOCKET clientSocket) {
 	currentState = State::MENU; //change state to MENU
 }
 
-
 /**
  * if the input action is not valid this method is used to take input again
  * @return valid action input
@@ -231,7 +229,8 @@ static void receiveAndDisplayUnseenMessages(SOCKET client) {
 	char buffer[1024]; //char array to receive messages
 	bool terminate = false; //boolean that depends on if the received message is the last one
 
-	while (!terminate) {
+	while (!terminate) 
+	{
 
 		//receiving message
 		memset(buffer, 0, sizeof(buffer));
@@ -251,7 +250,6 @@ static void receiveAndDisplayUnseenMessages(SOCKET client) {
 		string feedback = "read";
 		send(client, feedback.c_str(), feedback.size(), 0);
 
-
 	}
 	cout << endl;
 	//after displaying unseen messages, the user is sent back to the menu
@@ -267,7 +265,8 @@ static void receiveAndDisplayHistory(SOCKET client) {
 	char buffer[1024]; //char array to receive messages
 	bool terminate = false; //boolean that depends on if the received message is the last one
 	cout << endl;
-	while (!terminate) {
+	while (!terminate) 
+	{
 
 		//receiving message
 		memset(buffer, 0, sizeof(buffer));
@@ -315,7 +314,6 @@ static void handleMenuMode(SOCKET clientSocket) {
 		currentState = State::TERMINATE; //change state to TERMINATE
 		return; //if sending fails
 	}
-
 	if (action == "1") {
 		currentState = State::MESSAGING_MODE; //change state to MESSAGING_MODE
 	}
@@ -423,7 +421,6 @@ int main() {
 	//connecting to the server
 	connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
-
 	currentState = State::REGISTER; //set initial state to REGISTER
 	while (true && result == 0) {
 
@@ -453,10 +450,10 @@ int main() {
 			displayActiveClients(clientSocket);
 			break;
 
-		case State::MESSAGE_HISTORY:{
+		case State::MESSAGE_HISTORY:
 			receiveAndDisplayHistory(clientSocket);
 			break;
-		}
+		
 
 		case State::DISCONNECT: 
 			openOfflineMode(clientSocket);
