@@ -39,6 +39,8 @@ static void printMenu() {
 static void openOfflineMode(SOCKET client) {
 	//taking done signal from the server
 	int bytes;
+
+	//client receives a start signal to open offlline mode
 	char start;
 	bytes = recv(client, &start, sizeof(start), 0);
 	if(bytes <= 0) {
@@ -53,19 +55,23 @@ static void openOfflineMode(SOCKET client) {
 			cout << "Invalid comment." << endl;
 		}
 	}
-	char end = '1';
-	bytes = send(client, &end, 1, 0);
+
+	//sending back signal to the server
+	char endOfflineMode = '1';
+	bytes = send(client, &endOfflineMode, 1, 0);
 	if (bytes <= 0) {
 		currentState = State::TERMINATE;
 		return;
 	}
+
+	//receiving the finish signal from the server
 	char finish;
 	bytes = recv(client, &finish, sizeof(finish), 0);
 	if (bytes <= 0) {
 		currentState = State::TERMINATE;
 		return;
 	}
-	
+	//if the server is full, the client cannot reconnect
 	if (finish == '0') {
 		cout << "Cannot reconnect, the server is full! " << endl;
 		currentState = State::TERMINATE;

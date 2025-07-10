@@ -65,9 +65,8 @@ static void deleteClient(SOCKET client_socket) {
 static bool enhancedRecvStr(string& s, SOCKET client_socket) {
 
 	char buffer[1024];
-	int bytesReceived = 0;
 	memset(buffer, 0, sizeof(buffer));
-	bytesReceived = recv(client_socket, buffer, sizeof(buffer), 0);
+	int bytesReceived = recv(client_socket, buffer, sizeof(buffer), 0);
     if (bytesReceived <= 0) {
 		deleteClient(client_socket);
         closesocket(client_socket);
@@ -136,11 +135,11 @@ static bool enhancedSendChar(const char& c, SOCKET client_socket) {
  */
 static int getActiveClientAmount() {
     int count = 0;
-    for (const auto& allClientObject : allClientObjects) {
-        if (allClientObject.getIsActive()) {
+    for(int i = 0 ; i < allClientObjects.size(); i++) {
+        if (allClientObjects[i].getIsActive()) {
             count++;
         }
-    }
+	}
     return count;
 }
 
@@ -192,13 +191,14 @@ static bool isInteger(const string& str) {
 static bool handleOfflineMode(SOCKET client_socket) {
     cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " disconnected." << endl;
     int index = getClientIndex(client_socket);
-    if(index == -1) {
-        return false;
-	}
     //setting the client object to inactive
     allClientObjects[index].setIsActive(false);
+
+	//server sends a start signal to the client to open offline mode
     char start = '1';
 	if(!enhancedSendChar(start, client_socket)) { return false; }
+
+	//client sends a signal to the server to return
     char endDisconnectMode;
     if (!enhancedRecvChar(endDisconnectMode, client_socket)) {return false;}
       
@@ -208,6 +208,9 @@ static bool handleOfflineMode(SOCKET client_socket) {
     if (!(activeClients < 3)) {
 		finish = '0';
     }
+	//server sends a signal to the client to finish the offline mode
+    //if the server is full, it sends '0' 
+	//if the server is not full, it sends '1' 
 	if(!enhancedSendChar(finish, client_socket)) { return false; }
 
   
@@ -411,7 +414,7 @@ static bool isDestinationsValid(const string& destinations, const SOCKET client_
     vector<string> allDestinations;
     stringstream ss(destinations);
     string singleDestination;
-
+	cout << "isDestinations: " << destinations <<endl;
     while (getline(ss, singleDestination, ' ')) {
         //checks if the index already exists
         if (!isInteger(singleDestination)) {
@@ -443,8 +446,6 @@ static bool isDestinationsValid(const string& destinations, const SOCKET client_
     allClientObjects[indexOfTheUser].setDestinations(indexesOfDestinations);
     return true;
 
-
-
 }
 /**
  * method to check whether a name exists in the clients storage
@@ -467,13 +468,12 @@ static bool isDuplicated(const string& name) {
  */
 static void sendClientAllUserNames(SOCKET client) {
 	
-    int count = getActiveClientAmount();
     
 	//scanning all clients and sending their names
     for (int i = 0, c = 0; i < allClientObjects.size(); i++) {
         string nameToSend = allClientObjects[i].getClientName();
 		//if the client is the last one, it sends '0' to the end of the name
-        if (c == count - 1) {
+        if (c == allClientObjects.size() - 1) {
             nameToSend += "0";
 			enhancedSendStr(nameToSend, client);
             char read;
@@ -507,6 +507,7 @@ static bool handleChoosingDestinations(SOCKET client_socket) {
     if (!enhancedRecvStr(destinations, client_socket)) {
 		return false;   
     }
+	cout << "Received destinations: " << destinations << endl;
     //checking if it is valid, this method adds destinations to storage if it is valid
     bool isValid = isDestinationsValid(destinations, client_socket);
     string destinationsValid;
