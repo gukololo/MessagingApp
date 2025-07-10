@@ -22,12 +22,17 @@ vector <string> allUserNames; //stores all usernames
  * @return index
  */
 static int getClientIndex(SOCKET client) {
+    int result = -1;
     for (int i = 0; i < allClientObjects.size(); i++) {
         if (allClientObjects[i].getClientSocket() == client) {
-            return i;
+            result = i;
         }
     }
-    return -1;
+    if (result == -1) {
+		throw logic_error("Client not found in storage.");
+    }
+	return result;
+    
 }
 /**
  * a method for deleting a client from the storage, it finds the client by its socket
@@ -173,15 +178,12 @@ static string getHourAndMinute() {
  * @return if successful or not
  */
 static bool isInteger(const string& str) {
-    try {
-        size_t pos;
-        stoi(str, &pos);
-        return pos == str.length();
-    }
-    catch (...) {
-        return false;
-    }
+
+    char* p;
+    strtol(str.c_str(), &p, 10);
+    return *p == 0;
 }
+
 
 /**
  * a method for handling the offline mode, it sets the client object to inactive and waits for rejoining
@@ -200,8 +202,7 @@ static bool handleOfflineMode(SOCKET client_socket) {
 
 	//client sends a signal to the server to return
     char endDisconnectMode;
-    if (!enhancedRecvChar(endDisconnectMode, client_socket)) {return false;}
-      
+    if (!enhancedRecvChar(endDisconnectMode, client_socket)) {return false;}      
 
     char finish = '1';
 	int activeClients = getActiveClientAmount();
