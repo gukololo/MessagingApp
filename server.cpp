@@ -531,64 +531,86 @@ static bool handleChoosingDestinations(SOCKET client_socket) {
 	enhancedSendStr(destinationsValid, client_socket);
     return true;
 }
+
+static bool handleRegister(SOCKET client_socket)
+{   
+    int bytes;
+    char buffer[1024];
+	string receivedName;
+    ClientUser newClient;
+
+    while (true)
+    {
+        //receiving the username
+        memset(buffer, 0, sizeof(buffer));
+        bytes = recv(client_socket, buffer, sizeof(buffer), 0);
+        if (bytes <= 0)
+        {
+            cout << " A client disconnected in the register stage." << endl;
+            return false;
+        }
+
+        receivedName = buffer;
+        //checking if it is duplicated
+        char exists = '0';
+        if (isDuplicated(receivedName)) 
+        {
+            exists = '1';
+        }
+        //sending the duplicated answer
+        bytes = send(client_socket, &exists, 1, 0);
+        if (bytes <= 0)
+        {   
+            cout << " A client disconnected in the register stage." << endl;
+            return false;
+        }
+        //if it is not duplicated, we break the loop
+        if (exists == '0') 
+        {
+            //the server registers the new client
+            allUserNames.push_back(receivedName);
+            newClient.setClientName(receivedName);
+            newClient.setClientSocket(client_socket);
+			allClientObjects.push_back(newClient);
+            cout << "Client " << receivedName << " registered." << endl;
+            break;
+        }
+    }	
+
+    //user will send signal to join the server
+
+    while (true)
+    {
+        //waiting for the user to press enter
+        char connectRequest;
+        recv(client_socket, &connectRequest, 1, 0);
+
+        char isAvailable = '1';
+        if (getActiveClientAmount() >= 3) 
+        {
+            isAvailable = '0';
+        }
+        //sending the signal to the user
+        send(client_socket, &isAvailable, 1, 0);
+        if (isAvailable == '1') 
+        {   
+			int index = getClientIndex(client_socket);
+			allClientObjects[index].setIsActive(true);
+            cout << "Client " << receivedName << " connected." << endl;
+            return true; //user can join
+        }
+
+    }
+
+}
+
 /**
  * method for all the handling process of a client
  * @param client_socket client socket to handle
  */
 static void handle_client_all(SOCKET client_socket) {
-    //a char array for receiving messages
-    char buffer[1024];
-    int bytes;
-    
-    //receiving the username
-    string receivedName;
-	memset(buffer, 0, sizeof(buffer));
-	 bytes = recv(client_socket, buffer, sizeof(buffer), 0);
-    if (bytes <= 0) {
-
-		cout << "Client disconnected before sending a name." << endl;
-        return;
-    }
-    receivedName = buffer;
-
-    //checking if it is duplicated
-    //if it is duplicated, the server will send client the output
-    while (isDuplicated(receivedName)) {
-
-        //sending the duplicated answer
-        if (!enhancedSendChar('1', client_socket)) { return; }
-
-        //receiving a new name
-		if(!enhancedRecvStr(receivedName, client_socket)) { return; }
-
-    }
-
-    //if the username is not a duplicate we send this feedback to user
-	enhancedSendChar('0', client_socket);
-
-    //send feedback to clients to decide whether they can continue
-    char readyToStart;
-    if (getActiveClientAmount() >= 3) {
-        readyToStart = '0';
-    }
-    else {
-        readyToStart = '1';
-    }
-	enhancedSendChar(readyToStart, client_socket);
-
-    //registering the new client
-    ClientUser newClient;
-	allUserNames.push_back(receivedName);
-    newClient.setClientName(receivedName);
-    newClient.setIsActive(true);
-	newClient.setInMessageMode(false);
-	newClient.setClientSocket(client_socket);
-    
-    //storing the new client
-    allClientObjects.push_back(newClient);
-
-    cout << "Client " << receivedName << " connected." << endl;
-
+	
+    handleRegister(client_socket);
     //now the user is in the menu
     string action;
     if (!enhancedRecvStr(action, client_socket))

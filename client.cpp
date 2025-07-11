@@ -338,70 +338,53 @@ static void handleMenuMode(SOCKET clientSocket) {
  */
 static void handleRegisterMode(SOCKET clientSocket) {
 	
-	cout << endl;
-	cout << "Welcome to server." << endl;
+	while(true)
+	{
 
-	//getting the username from the user
-	string name;
-	cout << "Enter username: ";
-	getline(cin, name);
+		char isDuplicated{};
+		while (isDuplicated != '0')
+		{
+			cout << "Please enter your username: ";
+			string username;
+			getline(cin, username);
 
-	//sending the name we choose and sending it to the server
-	int bytes = send(clientSocket, name.c_str(), name.length(), 0);
-	if( bytes <= 0) {
-		currentState = State::TERMINATE; //change state to TERMINATE
-		return;
-	}
-	//receiving answer that shows if duplicated
-	char isDuplicated;
-	bytes = recv(clientSocket, &isDuplicated, sizeof(isDuplicated), 0);
-	if (bytes <= 0) {
-		currentState = State::TERMINATE; //change state to TERMINATE
-		return;
-	}
+			send(clientSocket, username.c_str(), static_cast<int>(username.length()), 0);
+			recv(clientSocket, &isDuplicated, 1, 0);
 
-	//if duplicated taking username input again
-	while (isDuplicated == '1') {
-		cout << endl;
-		cout << "This username already exists. Try again!" << endl;
-		cout << "Enter username: ";
-		getline(cin, name);
-
-		//sending the name we choose and sending it to the server
-		int bytes = send(clientSocket, name.c_str(), name.length(), 0);
-		if (bytes <= 0) {
-			currentState = State::TERMINATE; //change state to TERMINATE
-			return;
+			if (isDuplicated == '1') {
+				cout << "Username is already taken. Please try again! " <<endl;
+				cout << endl;
+			}
 		}
-		//taking duplicated answer again
-		bytes = recv(clientSocket, &isDuplicated, sizeof(isDuplicated), 0);
-		if (bytes <= 0) {
-			currentState = State::TERMINATE; //change state to TERMINATE
-			return;
+		cout << "Username is chosen successfully!" << endl;
+
+		while (true) {
+			cout << "Press enter to join to server! " <<endl;
+			string enterKey;
+			getline(cin, enterKey);
+			if(enterKey.empty()) {
+				//send a signal to the server that the user is ready to join
+				char readySignal = '1';
+				send(clientSocket, &readySignal, 1, 0);
+				char isServerReady;
+				recv(clientSocket, &isServerReady, 1, 0);
+				if (isServerReady == '1') {
+					cout << "You have joined the server successfully!" << endl;
+					currentState = State::MENU; //change state to MENU
+					return; //exit the registration mode
+				}
+				else if (isServerReady == '0') {
+					cout << "Server is full. Please try again!" << endl;
+				}
+			}
+			else {
+				cout << "Please press enter to join!" << endl;
+			}
+
 		}
+		
 	}
-
-	//then checking if it is available to connect
-	char readyToStart;
-	bytes = recv(clientSocket, &readyToStart, sizeof(readyToStart), 0);
-	if (bytes <= 0) {
-		currentState = State::TERMINATE; //change state to TERMINATE
-		return;
-	}
-
-	//if server is full
-	if (readyToStart == '0') {
-		cout << "Cannot connect to the server, it is full. Try another time!" << endl;
-		currentState = State::TERMINATE; //change state to TERMINATE
-		return;
-	}
-
-	//registration is successful
-	cout << endl;
-	cout << "You are registered successfully!" << endl;
-	cout << "Connected to server!" << endl;
-	cout << endl;
-	currentState = State::MENU; //change state to MENU
+	
 }
 int main() {
 
@@ -452,7 +435,6 @@ int main() {
 			receiveAndDisplayHistory(clientSocket);
 			break;
 		
-
 		case State::DISCONNECT: 
 			openOfflineMode(clientSocket);
 			break;
