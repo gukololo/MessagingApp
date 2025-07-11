@@ -191,34 +191,35 @@ static bool isInteger(const string& str) {
  * @return if successful or not
  */
 static bool handleOfflineMode(SOCKET client_socket) {
-    cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " disconnected." << endl;
-    int index = getClientIndex(client_socket);
+
+    //determining client index
+    int clientIndex = getClientIndex(client_socket);
+    
     //setting the client object to inactive
-    allClientObjects[index].setIsActive(false);
+	allClientObjects[clientIndex].setIsActive(false);
+    cout << "Client " << allClientObjects[clientIndex].getClientName() << " is disconnected." << endl;
 
-	//server sends a start signal to the client to open offline mode
-    char start = '1';
-	if(!enhancedSendChar(start, client_socket)) { return false; }
+	bool terminate = false;
+    while (!terminate) {
+        
+        char receiveSignal;
+        if (!enhancedRecvChar(receiveSignal, client_socket)) 
+            return false;
 
-	//client sends a signal to the server to return
-    char endDisconnectMode;
-    if (!enhancedRecvChar(endDisconnectMode, client_socket)) {return false;}      
+		char sendSignal = '0';
 
-    char finish = '1';
-	int activeClients = getActiveClientAmount();
-    if (!(activeClients < 3)) {
-		finish = '0';
+        if(getActiveClientAmount() < 3) {
+            sendSignal = '1';
+			terminate = true;
+		}
+		 
+        if (!enhancedSendChar(sendSignal, client_socket))
+            return false;
     }
-	//server sends a signal to the client to finish the offline mode
-    //if the server is full, it sends '0' 
-	//if the server is not full, it sends '1' 
-	if(!enhancedSendChar(finish, client_socket)) { return false; }
 
-  
-    //after taking and sending rejoining feedback, the server sets the client object to active again
-    allClientObjects[index].setIsActive(true);
-    cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " reconnected." << endl;
-    return true;
+    allClientObjects[clientIndex].setIsActive(true);
+    cout << "Client " << allClientObjects[clientIndex].getClientName() << " is reconnected." << endl;
+	return true;
 }
 
 /**

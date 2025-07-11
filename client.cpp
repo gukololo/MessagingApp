@@ -38,46 +38,41 @@ static void printMenu() {
  */
 static void openOfflineMode(SOCKET client) {
 
-	//client receives a start signal to open offlline mode
-	char start;
-	int bytes = recv(client, &start, sizeof(start), 0);
-	if(bytes <= 0) {
-		currentState = State::TERMINATE;
-		return;
-	}
-	cout << "Disconnected. Type /return to return." << endl;
-	string back;
-	while (back != "/return") {
-		getline(cin, back);
-		if (back != "/return") {
-			cout << "Invalid comment." << endl;
+	cout << "Disconnected from the server. Type /return to reconnect." << endl;
+
+	while(true) {
+
+		//taking input from the user
+		string input;
+		getline(cin, input);
+
+		//if the input is /return, we try to reconnect
+		if (input == "/return") {
+			
+			//send a signal to the server to check if it is possible to reconnect
+			char sendSignal = '1';
+			send(client, &sendSignal, 1, 0);
+			char receiveSignal;
+			recv(client, &receiveSignal, sizeof(receiveSignal), 0);
+
+			//if the server accepts the reconnection
+			if(receiveSignal == '1') {
+				cout << "Reconnected to the server!" << endl;
+				currentState = State::MENU; //change state to MENU
+				return; 
+			}
+			else {
+				cout << "Failed to reconnect. Server is full try again." << endl;
+			}
+
+		}
+		//if the user does not input /return, we display an error message
+		else {
+			cout << "Invalid input. Type /return to reconnect." << endl;
 		}
 	}
-
-	//sending back signal to the server
-	char endOfflineMode = '1';
-
-	bytes = send(client, &endOfflineMode, 1, 0);
-	if (bytes <= 0) {
-		currentState = State::TERMINATE;
-		return;
-	}
-	//receiving the finish signal from the server
-	char finish;
-	bytes = recv(client, &finish, sizeof(finish), 0);
-	if (bytes <= 0) {
-		currentState = State::TERMINATE;
-		return;
-	}
-	//if the server is full, the client cannot reconnect
-	if (finish == '0') {
-		cout << "Cannot reconnect, the server is full! " << endl;
-		currentState = State::TERMINATE;
-		return;
-	}
-	cout << "\nReconnecting to the server!" << endl;
-	currentState = State::MENU; 
 }
+
 /**
  * This function displays all active clients and allows the user to choose one
  * @param clientSocket client socket to handle
@@ -142,9 +137,12 @@ static void handleChoosingDestinations(SOCKET clientSocket) {
 
 	//if the input is not valid, taking input until it is valid
 	while (validationAnswer == "no") {
+
 		cout << "Invalid input try again: " << endl;
+		
 		getline(cin, destinations);
 		int bytes = send(clientSocket, destinations.c_str(), static_cast <int>( destinations.length()), 0);
+		
 		if (bytes <= 0) {
 			currentState = State::TERMINATE;
 			return;
