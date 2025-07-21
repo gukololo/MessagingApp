@@ -408,10 +408,6 @@ static void handleRegisterMode(SOCKET clientSocket) {
 					cout << "Server is full. Please try again!" << endl;
 				}
 			}
-			else {
-				cout << "Please press enter to join!" << endl;
-			}
-
 		}
 		
 	}
