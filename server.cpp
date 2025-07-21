@@ -340,11 +340,10 @@ static void sendMessageHistoryToUser(const SOCKET& client) {
 
 }
 /**
- * this method sends  all unseen messages to given user
- * @param client_socket client to send
- * @return if there are no unseen messages it returns false else it returns true
+ * this method sends all unseen messages to the user, if there are no unseen messages it sends a warning
+ * @param client_socket client socket to send
  */
-static bool sendUnseenMessagesToUser(SOCKET client_socket) {
+static void sendUnseenMessagesToUser(SOCKET client_socket) {
 
     //name of the client socket
     string destinationName = allClientObjects[getClientIndex(client_socket)].getClientName();
@@ -356,9 +355,14 @@ static bool sendUnseenMessagesToUser(SOCKET client_socket) {
             count++;
         }
     }
+
     if (count == 0) {
-        return false;
+        string msg = "No unseen message found!0";
+        enhancedSendStr(msg, client_socket);
+        return;
     }
+        
+    
 
     //tracing the vector and sending suitable messages
     for (int k = 0, c = 0; k < allUnseenMessages.size(); ) {
@@ -398,7 +402,7 @@ static bool sendUnseenMessagesToUser(SOCKET client_socket) {
             k++;
         }
     }
-    return true;
+    
 }
 
 /**
@@ -632,10 +636,7 @@ static void handle_client_all(SOCKET client_socket) {
         }
         //checking unseen messages
         else if (action == "3") {
-            if (!sendUnseenMessagesToUser(client_socket)) {
-                string msg = "No unseen message found!0";
-				enhancedSendStr(msg, client_socket);    
-            }
+			sendUnseenMessagesToUser(client_socket);
         }
         //see all available users
         else if (action == "4") {

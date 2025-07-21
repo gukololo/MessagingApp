@@ -434,7 +434,7 @@ int main() {
 	connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
 	currentState = State::REGISTER; //set initial state to REGISTER
-	while (true && result == 0) {
+	while (result == 0) {
 
 		switch (currentState)
 		{
