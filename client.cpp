@@ -366,7 +366,7 @@ static void handleRegisterMode(SOCKET clientSocket) {
 	
 	while(true)
 	{
-
+		//taking username from the user until it is valid
 		char isDuplicated{};
 		while (isDuplicated != '0')
 		{
@@ -389,6 +389,7 @@ static void handleRegisterMode(SOCKET clientSocket) {
 		}
 		cout << "Username is chosen successfully!" << endl;
 
+		//after the username is chosen, we wait for the user to press enter to join the server
 		while (true) {
 			cout << "Press enter to join to server! " <<endl;
 			string enterKey;
@@ -404,6 +405,7 @@ static void handleRegisterMode(SOCKET clientSocket) {
 					currentState = State::MENU; //change state to MENU
 					return; //exit the registration mode
 				}
+				//if the server is not ready, the user tries until it successfully connects 
 				else if (isServerReady == '0') {
 					cout << "Server is full. Please try again!" << endl;
 				}
