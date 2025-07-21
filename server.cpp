@@ -39,28 +39,34 @@ static int getClientIndex(SOCKET client) {
  * @param client_socket client socket to delete
  */
 static void deleteClient(SOCKET client_socket) {
-    //find the index of the client in the storage
+
+	// Find the index of the client in the storage to delete
     int index = getClientIndex(client_socket);
 
-	//deleting the client from all destinations
-    for(int i = 0 ; i < allClientObjects.size(); i++) {
-		vector<int> destinations = allClientObjects[i].getDestinations();
-        if (find(destinations.begin(), destinations.end(), index) != destinations.end()) {
-			destinations.erase(remove(destinations.begin(), destinations.end(), index), destinations.end());
-        }
-	}
+    cout << "Client " << allClientObjects[index].getClientName() << " quit." << endl;
 
-    if (index != -1) {
-        //if it is found, we delete it from the storage
-        vector<int> emptyDestinations;
-        cout << "Client " << allClientObjects[index].getClientName() << " quit." << endl;
-        allClientObjects[index].setDestinations(emptyDestinations);
-        allClientObjects.erase(allClientObjects.begin() + index);
+	//tracing all the client objects and updating their destinations
+    for (ClientUser& client : allClientObjects) {
+        
+        vector<int> updatedDestinations;
+        for (int destIndex : client.getDestinations()) {
+           
+			//if the destination is bigger than deleted client index, we decrease it by 1
+            if (destIndex > index) {
+                updatedDestinations.push_back(destIndex - 1);
+            }
+			//if the destination is smaller than deleted client index, we keep it same
+            else if (destIndex < index) {
+                updatedDestinations.push_back(destIndex);
+            }
+        }
+		// Update the client's destinations
+        client.setDestinations(updatedDestinations);
     }
-    else {
-        return;
-    }
+	// Clear the destinations of the deleted client
+    allClientObjects.erase(allClientObjects.begin() + index);
 }
+
 /**
  * a method for receiving strings from the client, it handles the socket errors
  * @param s string to store the received string
@@ -263,6 +269,7 @@ static bool handleMessagingMode(SOCKET client_socket) {
             newMessage.setSender(allClientObjects[clientIndex].getClientName());
             newMessage.setMessage(msg);
             AllMessages.push_back(newMessage);
+
             //if the destination is not in the messaging mode, the message is stored in unseen messages vector
             if (!allClientObjects[destinationIndex].getInMessageMode()) {
                 allUnseenMessages.push_back(newMessage);
