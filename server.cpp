@@ -510,21 +510,21 @@ static bool handleChoosingDestinations(SOCKET client_socket) {
 
     //sending user the names
     sendClientAllUserNames(client_socket);
-
+    
+	//receiving the destinations from the user
     string destinations;
-    if (!enhancedRecvStr(destinations, client_socket)) {
+    if (!enhancedRecvStr(destinations, client_socket)) 
 		return false;   
-    }
-    //checking if it is valid, this method adds destinations to storage if it is valid
-    bool isValid = isDestinationsValid(destinations, client_socket);
-    string destinationsValid;
 
+    string destinationsValid = "no";
     //if the input is not valid, server repeats the process until the input is valid
-    while (!isValid) {
-        destinationsValid = "no";
-        if (!enhancedSendStr(destinationsValid, client_socket)) { return false; }
-       if(!enhancedRecvStr(destinations, client_socket)) { return false; }
-        isValid = isDestinationsValid(destinations, client_socket);
+    while (!isDestinationsValid(destinations, client_socket)) {
+        
+        if (!enhancedSendStr(destinationsValid, client_socket))  
+            return false; 
+       if(!enhancedRecvStr(destinations, client_socket))  
+            return false; 
+
     }
     //the input is valid, the server gives feedback
     destinationsValid = "yes";
@@ -546,7 +546,8 @@ static bool handleRegister(SOCKET client_socket)
         bytes = recv(client_socket, buffer, sizeof(buffer), 0);
         if (bytes <= 0)
         {
-            cout << " A client disconnected in the register stage." << endl;
+            cout << "A client disconnected in the register stage." << endl;
+            closesocket(client_socket);
             return false;
         }
 
@@ -561,7 +562,8 @@ static bool handleRegister(SOCKET client_socket)
         bytes = send(client_socket, &exists, 1, 0);
         if (bytes <= 0)
         {   
-            cout << " A client disconnected in the register stage." << endl;
+            cout << "A client disconnected in the register stage." << endl;
+			closesocket(client_socket);
             return false;
         }
         //if it is not duplicated, we break the loop
@@ -610,11 +612,14 @@ static bool handleRegister(SOCKET client_socket)
  */
 static void handle_client_all(SOCKET client_socket) {
 	
-    handleRegister(client_socket);
+	//first we register the user
+    if (!handleRegister(client_socket))return;
+
     //now the user is in the menu
     string action;
-    if (!enhancedRecvStr(action, client_socket))
-    {return;}
+    if (!enhancedRecvStr(action, client_socket)){return;}
+
+	//acting depending on the action
     while (true) {
 
         //messaging mode
@@ -623,16 +628,11 @@ static void handle_client_all(SOCKET client_socket) {
         }
         //choosing destinations
         else if (action == "2") {
-
-            if (!handleChoosingDestinations(client_socket)) {
-                return;
-            }
-
+            if (!handleChoosingDestinations(client_socket)) {return;}
         }
         //checking unseen messages
         else if (action == "3") {
-            bool unseenMsgFound = sendUnseenMessagesToUser(client_socket);
-            if (!unseenMsgFound) {
+            if (!sendUnseenMessagesToUser(client_socket)) {
                 string msg = "No unseen message found!0";
 				enhancedSendStr(msg, client_socket);    
             }
@@ -648,19 +648,16 @@ static void handle_client_all(SOCKET client_socket) {
         //disconnect
         else if (action == "6") {
             if (!handleOfflineMode(client_socket)) {return;}
-
         }
-
-        if (!enhancedRecvStr(action, client_socket)) { return; }
-
+        //updating the action
+        if (!enhancedRecvStr(action, client_socket)) {return;}
     }
 }
 
 int main() {
 
     WSADATA wsa;
-    int connectionResult = WSAStartup(MAKEWORD(2, 2), &wsa);
-
+    int result = WSAStartup(MAKEWORD(2, 2), &wsa);
     SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
     //defining server address
@@ -677,12 +674,21 @@ int main() {
     listen(serverSocket, SOMAXCONN);
 
     cout << "Server started!" << endl;
-    while (true && connectionResult == 0) {
+    while (true && result == 0) {
+
         //creating client socket
         sockaddr_in client_addr{};
         int client_size = sizeof(client_addr);
         SOCKET client_socket = accept(serverSocket, (sockaddr*)&client_addr, &client_size);
-        thread(handle_client_all, client_socket).detach();
+
+		//checking if the client socket is valid
+        if (client_socket == INVALID_SOCKET) {
+            cerr << "Error: " << WSAGetLastError() << endl;
+            continue; 
+        }
+        else {
+            thread(handle_client_all, client_socket).detach();
+        }
     }
     WSACleanup();
     return 0;

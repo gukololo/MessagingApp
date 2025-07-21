@@ -24,7 +24,29 @@ enum class State {
 };
 // Global variable to keep track of the current state
 State currentState;
+/**
+ * Returns the current hour and minute in the format [HH:MM]
+ * @return string in the form [hour:minute]
+ */
+static string getHourAndMinute() {
 
+	time_t now = time(0);
+	tm timeInfo;
+	localtime_s(&timeInfo, &now);
+
+	int hour = timeInfo.tm_hour;
+	int minute = timeInfo.tm_min;
+
+	string hourStr = to_string(hour);
+	string minStr = to_string(minute);
+
+	if (hour < 10) hourStr = "0" + hourStr;
+	if (minute < 10) minStr = "0" + minStr;
+
+	string result = "[" + hourStr + ":" + minStr + "] ";
+	return result;
+
+}
 /**
  * function to print options to user
  */
@@ -179,6 +201,7 @@ static void displayMessages(SOCKET client) {
 		//receiving messages
 		memset(buffer, 0, sizeof(buffer));
 		int bytes = recv(client, buffer, sizeof(buffer), 0);
+
 		if (bytes <= 0) {
 			break;
 		}
@@ -186,6 +209,7 @@ static void displayMessages(SOCKET client) {
 		if (msg == "/*/exit/*/")
 			return;
 		//display
+
 		cout << msg << endl;
 	}
 }
@@ -200,8 +224,9 @@ static void handleMessagingMode(SOCKET clientSocket) {
 	string msg;
 	thread(displayMessages, clientSocket).detach();
 	while (msg != "/exit") {
+	
 		getline(cin, msg);
-
+		
 		if (msg.empty()) {
 			cout << "Cannot send an empty message!" << endl;
 		}
@@ -215,6 +240,7 @@ static void handleMessagingMode(SOCKET clientSocket) {
 				return;
 			}
 		}
+	
 	}
 	currentState = State::MENU; //change state to MENU
 }
@@ -347,7 +373,12 @@ static void handleRegisterMode(SOCKET clientSocket) {
 			cout << "Please enter your username: ";
 			string username;
 			getline(cin, username);
-
+			cout << endl;
+			while(username.empty()) {
+				cout << "Username cannot be empty. Please enter a valid username: ";
+				getline(cin, username);
+				cout << endl;
+			}
 			send(clientSocket, username.c_str(), static_cast<int>(username.length()), 0);
 			recv(clientSocket, &isDuplicated, 1, 0);
 
