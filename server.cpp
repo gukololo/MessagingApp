@@ -21,18 +21,12 @@ vector<Message>allUnseenMessages; //stores all unseen messages
  * @return index
  */
 static int getClientIndex(SOCKET client) {
-    int result = -1;
     for (int i = 0; i < allClientObjects.size(); i++) {
         if (allClientObjects[i].getClientSocket() == client) {
-            result = i;
-            return result;
+            return i;
         }
     }
-    if (result == -1) {
-		throw logic_error("Client not found in storage.");
-    }
-	return result;
-    
+	return -1; // if not found
 }
 /**
  * a helper method to determine the client index in the storage from the given client name
@@ -54,26 +48,10 @@ static int getClientIndexByName(const string& name) {
 static void deleteClient(SOCKET client_socket) {
 
 	// Find the index of the client in the storage to delete
-    int index = getClientIndex(client_socket);
-	string nameOfDeletedClient = allClientObjects[index].getClientName();
+    cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " quit." << endl;
 
-    cout << "Client " << allClientObjects[index].getClientName() << " quit." << endl;
-
-	//tracing all the client objects and updating their destinations
-    for (ClientUser& client : allClientObjects) {
-        
-        vector<string> updatedDestinations;
-        for (string singleDestName : client.getDestinations()) {
-
-            if (singleDestName != nameOfDeletedClient) {
-                updatedDestinations.push_back(singleDestName);
-            }
-        }
-		// Update the client's destinations
-        client.setDestinations(updatedDestinations);
-    }
 	// Clear the destinations of the deleted client
-    allClientObjects.erase(allClientObjects.begin() + index);
+    allClientObjects.erase(allClientObjects.begin() + getClientIndex(client_socket));
 }
 
 /**
@@ -193,7 +171,6 @@ static string getHourAndMinute() {
  * @return if successful or not
  */
 static bool isInteger(const string& str) {
-
     char* p;
     strtol(str.c_str(), &p, 10);
     return *p == 0;
@@ -274,16 +251,16 @@ static bool handleMessagingMode(SOCKET client_socket) {
             //storing message
 			int destinationIndex = getClientIndexByName(allClientObjects[clientIndex].getDestinations()[i]);
             Message newMessage;
+
 			//getting the hour and minute
-			string time = getHourAndMinute();
-			newMessage.setTime(time);
-            newMessage.setDestination(allClientObjects[destinationIndex].getClientName());
+			newMessage.setTime(getHourAndMinute());
+            newMessage.setDestination((allClientObjects[clientIndex].getDestinations())[i]);
             newMessage.setSender(allClientObjects[clientIndex].getClientName());
             newMessage.setMessage(msg);
             AllMessages.push_back(newMessage);
 
             //if the destination is not in the messaging mode, the message is stored in unseen messages vector
-            if (!allClientObjects[destinationIndex].getInMessageMode()) {
+            if (destinationIndex == -1 || !allClientObjects[destinationIndex].getInMessageMode()) {
                 allUnseenMessages.push_back(newMessage);
                 //displaying in server
                 cout << "Unseen message: " << newMessage.getTime() + newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
@@ -381,8 +358,6 @@ static void sendUnseenMessagesToUser(SOCKET client_socket) {
         return;
     }
         
-    
-
     //tracing the vector and sending suitable messages
     for (int k = 0, c = 0; k < allUnseenMessages.size(); ) {
 
@@ -400,7 +375,6 @@ static void sendUnseenMessagesToUser(SOCKET client_socket) {
             //taking feedback for stoping TCP to break the messages
 			string feedback;
             enhancedRecvStr(feedback, client_socket);
-
 
         }
         //last message to send
