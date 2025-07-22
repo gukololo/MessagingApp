@@ -234,7 +234,7 @@ static void handleMessagingMode(SOCKET clientSocket) {
 			cout << "Cannot send message, you have no destinations! " << endl;
 		}
 		else {
-			int bytes = send(clientSocket, msg.c_str(), msg.length(), 0);
+			int bytes = send(clientSocket, msg.c_str(), static_cast <int>(msg.length()), 0);
 			if (bytes <= 0) {
 				currentState = State::TERMINATE;
 				return;
@@ -272,7 +272,7 @@ static void receiveAndDisplayUnseenMessages(SOCKET client) {
 
 		//giving feedback
 		string feedback = "read";
-		send(client, feedback.c_str(), feedback.size(), 0);
+		send(client, feedback.c_str(), static_cast <int>(feedback.size()), 0);
 
 	}
 	cout << endl;
@@ -308,7 +308,7 @@ static void receiveAndDisplayHistory(SOCKET client) {
 
 		//giving feedback
 		string feedback = "read";
-		send(client, feedback.c_str(), feedback.size(), 0);
+		send(client, feedback.c_str(), static_cast <int>(feedback.size()), 0);
 
 
 	}
@@ -333,7 +333,7 @@ static void handleMenuMode(SOCKET clientSocket) {
 	}
 
 	//sending the action to the server
-	int bytes = send(clientSocket, action.c_str(), action.length(), 0);
+	int bytes = send(clientSocket, action.c_str(), static_cast <int>(action.length()), 0);
 	if (bytes <= 0) {
 		currentState = State::TERMINATE; //change state to TERMINATE
 		return; //if sending fails

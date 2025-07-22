@@ -3,11 +3,15 @@
 #include <WinSock2.h>
 using namespace std;
 
+/**
+ * ClientUser class constructor initializes the client user with default values
+ */
 ClientUser::ClientUser() {
     clientName = "";
     inMessageMode = false;
     isActive = false;
     destinations = vector<int>();
+	clientSocket = INVALID_SOCKET; // Initialize with an invalid socket
 }
 
 //getters
