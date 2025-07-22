@@ -15,7 +15,6 @@ using namespace std;
 vector<ClientUser> allClientObjects; //stores all ClientUser objects
 vector<Message> AllMessages; //stores all the message objects
 vector<Message>allUnseenMessages; //stores all unseen messages
-vector <string> allUserNames; //stores all usernames
 /**
  * a helper method to determine the client index in the storage from the given client socket
  * @param client given client socket
@@ -462,8 +461,8 @@ static bool isDestinationsValid(const string& destinations, const SOCKET client_
  * @return if exists or not
  */
 static bool isDuplicated(const string& name) {
-    for (int i = 0; i < allUserNames.size(); i++) {
-        if (allUserNames[i] == name) {
+    for (int i = 0; i < allClientObjects.size(); i++) {
+        if (allClientObjects[i].getClientName() == name) {
             return true;
         }
     }
@@ -581,7 +580,6 @@ static bool handleRegister(SOCKET client_socket)
         if (exists == '0') 
         {
             //the server registers the new client
-            allUserNames.push_back(receivedName);
             newClient.setClientName(receivedName);
             newClient.setClientSocket(client_socket);
 			allClientObjects.push_back(newClient);

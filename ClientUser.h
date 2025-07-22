@@ -24,6 +24,7 @@ private:
     vector<int> destinations;
     bool inMessageMode;
     bool isActive;
+    bool quit;
 	SOCKET clientSocket;
 };
 #endif
