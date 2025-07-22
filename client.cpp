@@ -192,8 +192,8 @@ static string retakeAction() {
 }
 
 /**
- * method to display coming messages in the message mode
- * @param client client to display
+ * This function displays the messages received from the server in messaging mode
+ * @param client client socket to handle
  */
 static void displayMessages(SOCKET client) {
 	char buffer[1024];
