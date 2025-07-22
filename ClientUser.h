@@ -9,7 +9,7 @@ public:
     ClientUser();
     //getters
     string getClientName ()const;
-    vector<int> getDestinations() const;
+    vector<string> getDestinations() const;
     bool getInMessageMode()const;
     bool getIsActive()const;
 	SOCKET getClientSocket() const;
@@ -17,14 +17,13 @@ public:
     void setClientName(const string &s);
     void setInMessageMode(bool b);
     void setIsActive(bool b);
-    void setDestinations(const vector<int> &s);
+    void setDestinations(const vector<string> &s);
 	void setClientSocket(const SOCKET &s);
 private:
     string clientName;
-    vector<int> destinations;
+    vector<string> destinations;
     bool inMessageMode;
     bool isActive;
-    bool quit;
 	SOCKET clientSocket;
 };
 #endif

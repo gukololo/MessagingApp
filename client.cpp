@@ -144,13 +144,18 @@ static void handleChoosingDestinations(SOCKET clientSocket) {
 	string destinations;
 	cout << "Who do you want to message? Enter as numbers with spaces: " << endl;
 	getline(cin, destinations);
-	
+
+		while(destinations.empty()) {
+			cout << "Invalid input try again: " << endl;
+			getline(cin, destinations);
+		}
+
 	int bytes = send(clientSocket, destinations.c_str(), static_cast <int>(destinations.length()), 0);
 	if (bytes <= 0) {
 		currentState = State::TERMINATE;
 		return;
 	}
-
+	
 	//receiving answer for validation
 	char buffer[1024];//char array to receive messages
 	memset(buffer, 0, sizeof(buffer));
@@ -161,20 +166,25 @@ static void handleChoosingDestinations(SOCKET clientSocket) {
 	while (validationAnswer == "no") {
 
 		cout << "Invalid input try again: " << endl;
-		
-		getline(cin, destinations);
-		int bytes = send(clientSocket, destinations.c_str(), static_cast <int>( destinations.length()), 0);
-		
-		if (bytes <= 0) {
-			currentState = State::TERMINATE;
-			return;
 
+		getline(cin, destinations);
+
+		if(!destinations.empty())
+		{
+			int bytes = send(clientSocket, destinations.c_str(), static_cast <int>(destinations.length()), 0);
+
+			if (bytes <= 0) {
+				currentState = State::TERMINATE;
+				return;
+
+			}
+			memset(buffer, 0, sizeof(buffer));
+			recv(clientSocket, buffer, sizeof(buffer), 0);
+			validationAnswer = buffer;
 		}
-		memset(buffer, 0, sizeof(buffer));
-		recv(clientSocket, buffer, sizeof(buffer), 0);
-		validationAnswer = buffer;
 	}
 	cout << "Your message destinations are sets successfully !" << endl;
+	cout << endl;
 	currentState = State::MENU; //change state to MENU
 }
 

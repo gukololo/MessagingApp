@@ -25,6 +25,7 @@ static int getClientIndex(SOCKET client) {
     for (int i = 0; i < allClientObjects.size(); i++) {
         if (allClientObjects[i].getClientSocket() == client) {
             result = i;
+            return result;
         }
     }
     if (result == -1) {
@@ -34,6 +35,19 @@ static int getClientIndex(SOCKET client) {
     
 }
 /**
+ * a helper method to determine the client index in the storage from the given client name
+ * @param name given client name
+ * @return index
+ */
+static int getClientIndexByName(const string& name) {
+    for (int i = 0; i < allClientObjects.size(); i++) {
+        if (allClientObjects[i].getClientName() == name) {
+            return i;
+        }
+    }
+    return -1; // If not found
+}
+/**
  * a method for deleting a client from the storage, it finds the client by its socket
  * @param client_socket client socket to delete
  */
@@ -41,22 +55,18 @@ static void deleteClient(SOCKET client_socket) {
 
 	// Find the index of the client in the storage to delete
     int index = getClientIndex(client_socket);
+	string nameOfDeletedClient = allClientObjects[index].getClientName();
 
     cout << "Client " << allClientObjects[index].getClientName() << " quit." << endl;
 
 	//tracing all the client objects and updating their destinations
     for (ClientUser& client : allClientObjects) {
         
-        vector<int> updatedDestinations;
-        for (int destIndex : client.getDestinations()) {
-           
-			//if the destination is bigger than deleted client index, we decrease it by 1
-            if (destIndex > index) {
-                updatedDestinations.push_back(destIndex - 1);
-            }
-			//if the destination is smaller than deleted client index, we keep it same
-            else if (destIndex < index) {
-                updatedDestinations.push_back(destIndex);
+        vector<string> updatedDestinations;
+        for (string singleDestName : client.getDestinations()) {
+
+            if (singleDestName != nameOfDeletedClient) {
+                updatedDestinations.push_back(singleDestName);
             }
         }
 		// Update the client's destinations
@@ -255,11 +265,14 @@ static bool handleMessagingMode(SOCKET client_socket) {
         return false;
     }
     while (msg != "/exit") {
-        
+	
+        //updating the client index in case of quit of other clients
+        clientIndex = getClientIndex(client_socket);
+
         for (int i = 0; i < allClientObjects[clientIndex].getDestinations().size(); i++) {
 
             //storing message
-            int destinationIndex = allClientObjects[clientIndex].getDestinations()[i];
+			int destinationIndex = getClientIndexByName(allClientObjects[clientIndex].getDestinations()[i]);
             Message newMessage;
 			//getting the hour and minute
 			string time = getHourAndMinute();
@@ -442,16 +455,16 @@ static bool isDestinationsValid(const string& destinations, const SOCKET client_
     }
 
     //creating the true int vector and adding it to the true ClientUser object in the storage
-    vector <int> indexesOfDestinations;
+    vector <string> newDestinations;
     for (int i = 0; i < allDestinations.size(); i++) {
-        indexesOfDestinations.push_back(stoi(allDestinations[i]) - 1);
+        newDestinations.push_back(allClientObjects[stoi(allDestinations[i])-1].getClientName());
     }
 
     //determining the index from the storage
 	int indexOfTheUser = getClientIndex(client_socket); 
 
     //setting the ClientUser object's destinations
-    allClientObjects[indexOfTheUser].setDestinations(indexesOfDestinations);
+    allClientObjects[indexOfTheUser].setDestinations(newDestinations);
     return true;
 
 }

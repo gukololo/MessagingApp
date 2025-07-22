@@ -10,7 +10,7 @@ ClientUser::ClientUser() {
     clientName = "";
     inMessageMode = false;
     isActive = false;
-    destinations = vector<int>();
+    destinations = vector<string>();
 	clientSocket = INVALID_SOCKET; // Initialize with an invalid socket
 }
 
@@ -21,7 +21,7 @@ string ClientUser::getClientName() const {
 bool ClientUser::getIsActive() const {
     return isActive;
 }
-vector<int> ClientUser::getDestinations() const {
+vector<string> ClientUser::getDestinations() const {
     return destinations;
 }
 bool ClientUser::getInMessageMode() const {
@@ -33,7 +33,7 @@ SOCKET ClientUser::getClientSocket() const {
 //setters
 void ClientUser::setClientName(const string &s) {clientName = s;}
 void ClientUser::setIsActive(const bool b) {isActive = b;}
-void ClientUser::setDestinations(const vector<int> &d) {destinations = d;}
+void ClientUser::setDestinations(const vector<string> &d) {destinations = d;}
 void ClientUser::setInMessageMode(const bool b) {inMessageMode = b;}
 void ClientUser::setClientSocket(const SOCKET &s) {clientSocket = s;}
 
