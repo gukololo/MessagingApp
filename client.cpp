@@ -373,7 +373,6 @@ static void handleMenuMode(SOCKET clientSocket) {
  * @param clientSocket client socket to handle
  */
 static void handleRegisterMode(SOCKET clientSocket) {
-	
 	while(true)
 	{
 		//taking username from the user until it is valid

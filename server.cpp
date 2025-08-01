@@ -49,7 +49,6 @@ static void deleteClient(SOCKET client_socket) {
 
 	// Find the index of the client in the storage to delete
     cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " quit." << endl;
-
 	// Clear the destinations of the deleted client
     allClientObjects.erase(allClientObjects.begin() + getClientIndex(client_socket));
 }
@@ -667,7 +666,7 @@ int main() {
     listen(serverSocket, SOMAXCONN);
 
     cout << "Server started!" << endl;
-    while (true && result == 0) {
+    while (result == 0) {
 
         //creating client socket
         sockaddr_in client_addr{};
