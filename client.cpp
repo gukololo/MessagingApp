@@ -26,21 +26,21 @@ enum class State {
 State currentState;
 
 
-bool sendMessageToServer(string message,SOCKET clientSocket) 
+bool static sendMessageToServer(string message, SOCKET clientSocket)
 {
 	uint8_t length = static_cast<uint8_t>(message.size());
 	char packet[1024]{};
 	packet[0] = length;
 	memcpy(packet + 1, message.c_str(), length);
-	int bytes = send(clientSocket, packet,1+length, 0);
+	int bytes = send(clientSocket, packet, 1 + length, 0);
 	if (bytes <= 0)
-	{	
+	{
 		currentState = State::TERMINATE;
 		return false;
 	}
 	return true;
 }
-bool receiveMessageFromServer(string& s, SOCKET client_socket) {
+bool static receiveMessageFromServer(string& s, SOCKET client_socket) {
 	int length = 0;
 	int bytesReceived = recv(client_socket, (char*)&length, 1, 0);
 	if (bytesReceived <= 0) {
@@ -91,7 +91,7 @@ static void openOfflineMode(SOCKET client) {
 
 	cout << "Disconnected from the server. Type /return to reconnect." << endl;
 
-	while(true) {
+	while (true) {
 
 		//taking input from the user
 		string input;
@@ -99,7 +99,7 @@ static void openOfflineMode(SOCKET client) {
 
 		//if the input is /return, we try to reconnect
 		if (input == "/return") {
-			
+
 			//send a signal to the server to check if it is possible to reconnect
 			char sendSignal = '1';
 			send(client, &sendSignal, 1, 0);
@@ -107,10 +107,10 @@ static void openOfflineMode(SOCKET client) {
 			recv(client, &receiveSignal, sizeof(receiveSignal), 0);
 
 			//if the server accepts the reconnection
-			if(receiveSignal == '1') {
+			if (receiveSignal == '1') {
 				cout << "Reconnected to the server!" << endl;
 				currentState = State::MENU; //change state to MENU
-				return; 
+				return;
 			}
 			else {
 				cout << "Failed to reconnect. Server is full try again." << endl;
@@ -134,7 +134,7 @@ static void displayActiveClients(SOCKET clientSocket) {
 	bool terminate = false;
 	//receiving all active clients from the server
 	while (!terminate) {
-		
+
 		string receivedUsername;
 		receiveMessageFromServer(receivedUsername, clientSocket);
 		count++;
@@ -164,27 +164,25 @@ static void handleChoosingDestinations(SOCKET clientSocket) {
 	cout << "Who do you want to message? Enter as numbers with spaces: " << endl;
 	getline(cin, destinations);
 
-		while(destinations.empty()) {
-			cout << "Invalid input try again: " << endl;
-			getline(cin, destinations);
-		}
+	while (destinations.empty()) {
+		cout << "Invalid input try again: " << endl;
+		getline(cin, destinations);
+	}
 
-		sendMessageToServer(destinations, clientSocket);
-		string validationAnswer;
-
-		receiveMessageFromServer(validationAnswer, clientSocket);
+	sendMessageToServer(destinations, clientSocket);
+	string validationAnswer;
+	receiveMessageFromServer(validationAnswer, clientSocket);
 
 	//if the input is not valid, taking input until it is valid
 	while (validationAnswer == "no") {
 
 		cout << "Invalid input try again: " << endl;
-
 		getline(cin, destinations);
 
-		if(!destinations.empty())
+		if (!destinations.empty())
 		{
 			sendMessageToServer(destinations, clientSocket);
-			receiveMessageFromServer(validationAnswer, clientSocket);	
+			receiveMessageFromServer(validationAnswer, clientSocket);
 		}
 	}
 	cout << "Your message destinations are sets successfully !" << endl;
@@ -236,9 +234,9 @@ static void handleMessagingMode(SOCKET clientSocket) {
 	string msg;
 	thread(displayMessages, clientSocket).detach();
 	while (msg != "/exit") {
-	
+
 		getline(cin, msg);
-		
+
 		if (msg.empty()) {
 			cout << "Cannot send an empty message!" << endl;
 		}
@@ -259,7 +257,7 @@ static void receiveAndDisplayUnseenMessages(SOCKET client) {
 
 	bool terminate = false; //boolean that depends on if the received message is the last one
 
-	while (!terminate) 
+	while (!terminate)
 	{
 		string msg;
 		receiveMessageFromServer(msg, client);
@@ -282,10 +280,10 @@ static void receiveAndDisplayUnseenMessages(SOCKET client) {
  */
 static void receiveAndDisplayHistory(SOCKET client) {
 
-	
+
 	bool terminate = false; //boolean that depends on if the received message is the last one
 	cout << endl;
-	while (!terminate) 
+	while (!terminate)
 	{
 		string msg;
 		receiveMessageFromServer(msg, client);
@@ -318,8 +316,8 @@ static void handleMenuMode(SOCKET clientSocket) {
 	}
 
 	//sending the action to the server
-	
-	if (!sendMessageToServer(action,clientSocket)) {
+
+	if (!sendMessageToServer(action, clientSocket)) {
 		currentState = State::TERMINATE; //change state to TERMINATE
 		return; //if sending fails
 	}
@@ -348,7 +346,7 @@ static void handleMenuMode(SOCKET clientSocket) {
  * @param clientSocket client socket to handle
  */
 static void handleRegisterMode(SOCKET clientSocket) {
-	while(true)
+	while (true)
 	{
 		//taking username from the user until it is valid
 		char isDuplicated{};
@@ -358,7 +356,7 @@ static void handleRegisterMode(SOCKET clientSocket) {
 			string username;
 			getline(cin, username);
 			cout << endl;
-			while(username.empty()) {
+			while (username.empty()) {
 				cout << "Username cannot be empty. Please enter a valid username: ";
 				getline(cin, username);
 				cout << endl;
@@ -367,7 +365,7 @@ static void handleRegisterMode(SOCKET clientSocket) {
 			recv(clientSocket, &isDuplicated, 1, 0);
 
 			if (isDuplicated == '1') {
-				cout << "Username is already taken. Please try again! " <<endl;
+				cout << "Username is already taken. Please try again! " << endl;
 				cout << endl;
 			}
 		}
@@ -376,11 +374,11 @@ static void handleRegisterMode(SOCKET clientSocket) {
 		//after the username is chosen, we wait for the user to press enter to join the server
 		while (true) {
 
-			cout << "Press enter to join to server! " <<endl;
+			cout << "Press enter to join to server! " << endl;
 			string enterKey;
 			getline(cin, enterKey);
-			
-			if(enterKey.empty()) {
+
+			if (enterKey.empty()) {
 				//send a signal to the server that the user is ready to join
 				char readySignal = '1';
 				send(clientSocket, &readySignal, 1, 0);
@@ -397,9 +395,9 @@ static void handleRegisterMode(SOCKET clientSocket) {
 				}
 			}
 		}
-		
+
 	}
-	
+
 }
 int main() {
 
@@ -416,7 +414,7 @@ int main() {
 
 	//connecting to the server
 	connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
-	
+
 	currentState = State::REGISTER; //set initial state to REGISTER
 	while (result == 0) {
 
@@ -430,18 +428,18 @@ int main() {
 			handleMenuMode(clientSocket);
 			break;
 
-		case State::MESSAGING_MODE: 
+		case State::MESSAGING_MODE:
 			handleMessagingMode(clientSocket);
 			break;
 
-		case State::CHOOSE_DESTINATION: 
+		case State::CHOOSE_DESTINATION:
 			handleChoosingDestinations(clientSocket);
 			break;
 
 		case State::UNSEEN_MESSAGES:
 			receiveAndDisplayUnseenMessages(clientSocket);
 			break;
-		
+
 		case State::ACTIVE_USERS:
 			displayActiveClients(clientSocket);
 			break;
@@ -449,11 +447,11 @@ int main() {
 		case State::MESSAGE_HISTORY:
 			receiveAndDisplayHistory(clientSocket);
 			break;
-		
-		case State::DISCONNECT: 
+
+		case State::DISCONNECT:
 			openOfflineMode(clientSocket);
 			break;
-			
+
 		case State::TERMINATE:
 			cout << "Lost connection with the server. " << endl;
 			closesocket(clientSocket);

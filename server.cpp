@@ -21,11 +21,12 @@ vector<Message>allUnseenMessages; //stores all unseen messages
  * @return index
  */
 static int getClientIndex(SOCKET client) {
-    for (int i = 0; i < allClientObjects.size(); i++) {
-        if (allClientObjects[i].getClientSocket() == client) {
-            return i;
-        }
-    }
+	for (int i = 0; i < allClientObjects.size(); i++) {
+		if (allClientObjects[i].getClientSocket() == client)
+		{
+			return i;
+		}
+	}
 	return -1; // if not found
 }
 /**
@@ -34,23 +35,22 @@ static int getClientIndex(SOCKET client) {
  * @return index
  */
 static int getClientIndexByName(const string& name) {
-    for (int i = 0; i < allClientObjects.size(); i++) 
-    {
-
-        if (allClientObjects[i].getClientName() == name) 
-        {
-            return i;
-        }
-    }
-    return -1; // If not found
+	for (int i = 0; i < allClientObjects.size(); i++)
+	{
+		if (allClientObjects[i].getClientName() == name)
+		{
+			return i;
+		}
+	}
+	return -1; // If not found
 }
 /**
  * a method for deleting a client from the storage, it finds the client by its socket
  * @param client_socket client socket to delete
  */
 static void deleteClient(SOCKET client_socket) {
-    cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " quit." << endl;
-    allClientObjects.erase(allClientObjects.begin() + getClientIndex(client_socket));
+	cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " quit." << endl;
+	allClientObjects.erase(allClientObjects.begin() + getClientIndex(client_socket));
 }
 /**
  * a method for receiving string message from the client
@@ -58,41 +58,47 @@ static void deleteClient(SOCKET client_socket) {
  * @param client_socket client socket to handle
  * @return if successful or not
  */
-static bool receiveMessageFromClient(string& s,SOCKET client_socket) {
-    int length = 0;
-    int index = getClientIndex(client_socket);
-    int bytesReceived = recv(client_socket, (char*)&length, 1, 0);
-    if (bytesReceived <= 0) 
-    {
-        if (index != -1)
-        {      
-            deleteClient(client_socket);
-        }
-        closesocket(client_socket);
-        return false;
-    }
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    recv(client_socket, buffer, length, 0);
-    s = buffer;
-    return true;   
+static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
+	int length = 0;
+	int index = getClientIndex(client_socket);
+	int bytesReceived = recv(client_socket, (char*)&length, 1, 0);
+	if (bytesReceived <= 0)
+	{
+		if (index != -1)
+		{
+			deleteClient(client_socket);
+		}
+		closesocket(client_socket);
+		return false;
+	}
+	char buffer[1024];
+	memset(buffer, 0, sizeof(buffer));
+	recv(client_socket, buffer, length, 0);
+	s = buffer;
+	return true;
 }
+/**
+* this method sends messages to client with length header
+* @param message string message to send
+* @param client_socket socket to handle
+* @return if successful or not
+*/
 static bool sendMessageToClient(const string& message, SOCKET client_socket) {
-    uint8_t length = static_cast<uint8_t>(message.size());
-    char packet[1024]{};
-    packet[0] = length;
-    memcpy(packet + 1, message.c_str(), length);
-    int bytes = send(client_socket, packet, 1 + length, 0);
-    int index = getClientIndex(client_socket);
-    if (bytes <= 0)
-    {   
-        if (index != -1)
-        {
-            deleteClient(client_socket);
-        }
-        return false;
-    }
-    return true;
+	uint8_t length = static_cast<uint8_t>(message.size());
+	char packet[1024]{};
+	packet[0] = length;
+	memcpy(packet + 1, message.c_str(), length);
+	int bytes = send(client_socket, packet, 1 + length, 0);
+	int index = getClientIndex(client_socket);
+	if (bytes <= 0)
+	{
+		if (index != -1)
+		{
+			deleteClient(client_socket);
+		}
+		return false;
+	}
+	return true;
 }
 
 /**
@@ -102,18 +108,18 @@ static bool sendMessageToClient(const string& message, SOCKET client_socket) {
  * @return if successful or not
  */
 static bool enhancedRecvChar(char& c, SOCKET client_socket) {
-    int bytesReceived = recv(client_socket, &c, sizeof(c), 0);
-    int index = getClientIndex(client_socket);
-    if (bytesReceived <= 0) {
-        if (index != -1)
-        {
-            deleteClient(client_socket);
-        }        
-        closesocket(client_socket);
-        return false;
+	int bytesReceived = recv(client_socket, &c, sizeof(c), 0);
+	int index = getClientIndex(client_socket);
+	if (bytesReceived <= 0) {
+		if (index != -1)
+		{
+			deleteClient(client_socket);
+		}
+		closesocket(client_socket);
+		return false;
 
-    }
-    return true;
+	}
+	return true;
 }
 
 /**
@@ -123,34 +129,34 @@ static bool enhancedRecvChar(char& c, SOCKET client_socket) {
  * @return if successful or not
  */
 static bool enhancedSendChar(const char& c, SOCKET client_socket) {
-        int bytesSent = send(client_socket, &c, sizeof(c), 0);
-        if (bytesSent <= 0) {
-            
-            if(getClientIndex(client_socket) != -1)
-            { 
-                deleteClient(client_socket);
-            }
-            
-            closesocket(client_socket);
-            return false;
-        }
-        else {
-            return true;
-        }
-    }
+	int bytesSent = send(client_socket, &c, sizeof(c), 0);
+	if (bytesSent <= 0) {
+
+		if (getClientIndex(client_socket) != -1)
+		{
+			deleteClient(client_socket);
+		}
+
+		closesocket(client_socket);
+		return false;
+	}
+	else {
+		return true;
+	}
+}
 
 /**
  * method for getting to amount of online users
  * @return count of active users
  */
 static int getActiveClientAmount() {
-    int count = 0;
-    for(int i = 0 ; i < allClientObjects.size(); i++) {
-        if (allClientObjects[i].getIsActive()) {
-            count++;
-        }
+	int count = 0;
+	for (int i = 0; i < allClientObjects.size(); i++) {
+		if (allClientObjects[i].getIsActive()) {
+			count++;
+		}
 	}
-    return count;
+	return count;
 }
 
 /**
@@ -158,22 +164,22 @@ static int getActiveClientAmount() {
  * @return string in the form [hour:minute]
  */
 static string getHourAndMinute() {
-  
-    time_t now = time(0);
-    tm timeInfo;
-    localtime_s(&timeInfo, &now); 
 
-    int hour = timeInfo.tm_hour;
-    int minute = timeInfo.tm_min;
+	time_t now = time(0);
+	tm timeInfo;
+	localtime_s(&timeInfo, &now);
 
-    string hourStr = to_string(hour);
-    string minStr = to_string(minute);
+	int hour = timeInfo.tm_hour;
+	int minute = timeInfo.tm_min;
 
-    if (hour < 10) hourStr = "0" + hourStr;
-    if (minute < 10) minStr = "0" + minStr;
+	string hourStr = to_string(hour);
+	string minStr = to_string(minute);
 
-    string result = "[" + hourStr + ":" + minStr + "] ";
-    return result;
+	if (hour < 10) hourStr = "0" + hourStr;
+	if (minute < 10) minStr = "0" + minStr;
+
+	string result = "[" + hourStr + ":" + minStr + "] ";
+	return result;
 
 }
 
@@ -183,9 +189,9 @@ static string getHourAndMinute() {
  * @return if successful or not
  */
 static bool isInteger(const string& str) {
-    char* p;
-    strtol(str.c_str(), &p, 10);
-    return *p == 0;
+	char* p;
+	strtol(str.c_str(), &p, 10);
+	return *p == 0;
 }
 
 
@@ -196,33 +202,33 @@ static bool isInteger(const string& str) {
  */
 static bool handleOfflineMode(SOCKET client_socket) {
 
-    //determining client index
-    int clientIndex = getClientIndex(client_socket);
-    
-    //setting the client object to inactive
+	//determining client index
+	int clientIndex = getClientIndex(client_socket);
+
+	//setting the client object to inactive
 	allClientObjects[clientIndex].setIsActive(false);
-    cout << "Client " << allClientObjects[clientIndex].getClientName() << " is disconnected." << endl;
+	cout << "Client " << allClientObjects[clientIndex].getClientName() << " is disconnected." << endl;
 
 	bool terminate = false;
-    while (!terminate) {
-        
-        char receiveSignal;
-        if (!enhancedRecvChar(receiveSignal, client_socket)) 
-            return false;
+	while (!terminate) {
+
+		char receiveSignal;
+		if (!enhancedRecvChar(receiveSignal, client_socket))
+			return false;
 
 		char sendSignal = '0';
 
-        if(getActiveClientAmount() < 3) {
-            sendSignal = '1';
+		if (getActiveClientAmount() < 3) {
+			sendSignal = '1';
 			terminate = true;
 		}
-		 
-        if (!enhancedSendChar(sendSignal, client_socket))
-            return false;
-    }
 
-    allClientObjects[clientIndex].setIsActive(true);
-    cout << "Client " << allClientObjects[clientIndex].getClientName() << " is reconnected." << endl;
+		if (!enhancedSendChar(sendSignal, client_socket))
+			return false;
+	}
+
+	allClientObjects[clientIndex].setIsActive(true);
+	cout << "Client " << allClientObjects[clientIndex].getClientName() << " is reconnected." << endl;
 	return true;
 }
 
@@ -232,74 +238,74 @@ static bool handleOfflineMode(SOCKET client_socket) {
  */
 static bool handleMessagingMode(SOCKET client_socket) {
 
-    //determining client index
-    int clientIndex = getClientIndex(client_socket);
-   
-    //setting the messaging mode
-    allClientObjects[clientIndex].setInMessageMode(true);
-    
+	//determining client index
+	int clientIndex = getClientIndex(client_socket);
+
+	//setting the messaging mode
+	allClientObjects[clientIndex].setInMessageMode(true);
+
 	//determining if the user has no destinations
-    char isDestinationEmpty = '0';
-    if (allClientObjects[clientIndex].getDestinations().size() == 0) {
-        isDestinationEmpty = '1';
-    }
+	char isDestinationEmpty = '0';
+	if (allClientObjects[clientIndex].getDestinations().size() == 0) {
+		isDestinationEmpty = '1';
+	}
 	//sending the information to the user
-    if (!enhancedSendChar(isDestinationEmpty, client_socket)) {
+	if (!enhancedSendChar(isDestinationEmpty, client_socket)) {
 		return false;
-    }
+	}
 	//messaging mode starts
-    //receiving the message
-    string msg;
-    if (!receiveMessageFromClient(msg, client_socket)) {
-        return false;
-    }
-    while (msg != "/exit") {
-	
-        //updating the client index in case of quit of other clients
-        clientIndex = getClientIndex(client_socket);
+	//receiving the message
+	string msg;
+	if (!receiveMessageFromClient(msg, client_socket)) {
+		return false;
+	}
+	while (msg != "/exit") {
 
-        for (int i = 0; i < allClientObjects[clientIndex].getDestinations().size(); i++) {
+		//updating the client index in case of quit of other clients
+		clientIndex = getClientIndex(client_socket);
 
-            //storing message
+		for (int i = 0; i < allClientObjects[clientIndex].getDestinations().size(); i++) {
+
+			//storing message
 			int destinationIndex = getClientIndexByName(allClientObjects[clientIndex].getDestinations()[i]);
-            Message newMessage;
+			Message newMessage;
 
 			//getting the hour and minute
 			newMessage.setTime(getHourAndMinute());
-            newMessage.setDestination((allClientObjects[clientIndex].getDestinations())[i]);
-            newMessage.setSender(allClientObjects[clientIndex].getClientName());
-            newMessage.setMessage(msg);
-            AllMessages.push_back(newMessage);
+			newMessage.setDestination((allClientObjects[clientIndex].getDestinations())[i]);
+			newMessage.setSender(allClientObjects[clientIndex].getClientName());
+			newMessage.setMessage(msg);
+			AllMessages.push_back(newMessage);
 
-            //if the destination is not in the messaging mode, the message is stored in unseen messages vector
-            if (destinationIndex == -1 || !allClientObjects[destinationIndex].getInMessageMode()) {
-                allUnseenMessages.push_back(newMessage);
-                //displaying in server
-                cout << "Unseen message: " << newMessage.getTime() + newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
-            }
-            else {
-                string messageToSend = newMessage.getTime() + newMessage.getSender() + ": " + newMessage.getMessage();
-                cout << newMessage.getTime() + newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
-                //sending the message
-                
-				if(!sendMessageToClient(messageToSend, allClientObjects[destinationIndex].getClientSocket()))
-                {
-                    return false;
-                }
-            }
+			//if the destination is not in the messaging mode, the message is stored in unseen messages vector
+			if (destinationIndex == -1 || !allClientObjects[destinationIndex].getInMessageMode()) {
+				allUnseenMessages.push_back(newMessage);
+				//displaying in server
+				cout << "Unseen message: " << newMessage.getTime() + newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
+			}
+			else {
+				string messageToSend = newMessage.getTime() + newMessage.getSender() + ": " + newMessage.getMessage();
+				cout << newMessage.getTime() + newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
+				//sending the message
 
-        }
-        //receiving the message
-        if (!receiveMessageFromClient(msg, client_socket)) {
-            return false;
-        }
-    }
+				if (!sendMessageToClient(messageToSend, allClientObjects[destinationIndex].getClientSocket()))
+				{
+					return false;
+				}
+			}
+
+		}
+		//receiving the message
+		if (!receiveMessageFromClient(msg, client_socket)) {
+			return false;
+		}
+	}
 	//if the user exits the messaging mode, we send a signal to stop the thread for displaying messages
-    string finish = "/*/exit/*/";
-    if (!sendMessageToClient(finish, client_socket)) { return false; }
-    //setting the messaging mode to false
-    allClientObjects[clientIndex].setInMessageMode(false);
-    return true;
+	string finish = "/*/exit/*/";
+	if (!sendMessageToClient(finish, client_socket)) { return false; }
+	//setting the messaging mode to false
+	allClientObjects[clientIndex].setInMessageMode(false);
+	return true;
 }
 
 /**
@@ -308,40 +314,40 @@ static bool handleMessagingMode(SOCKET client_socket) {
  */
 static void sendMessageHistoryToUser(const SOCKET& client) {
 
-    int index = getClientIndex(client);
-    if (index == -1) {
-        return;
-    }
-    string clientName = allClientObjects[index].getClientName();
-    int count = 0;
+	int index = getClientIndex(client);
+	if (index == -1) {
+		return;
+	}
+	string clientName = allClientObjects[index].getClientName();
+	int count = 0;
 
-    //counting the related messages
-    for (int i = 0; i < AllMessages.size(); i++) {
-        if (AllMessages[i].getDestination() == clientName || AllMessages[i].getSender() == clientName) {
-            count++;
-        }
-    }
-    //if there are no related message we send end signal
-    if (count == 0) {
-        string endMessage = "You have no message history.0";
-        sendMessageToClient(endMessage, client);
-        return;
-    }
-    //scanning all messages and sending the related messages to client to print
-    int c = 0;
-    for (int i = 0; i < AllMessages.size(); i++) {
-        if (AllMessages[i].getSender() == clientName || AllMessages[i].getDestination() == clientName) {
-            string messageToSend = AllMessages[i].getTime() + AllMessages[i].getSender() + "->" + AllMessages[i].getDestination() + ": " + AllMessages[i].getMessage();
-            if (c != count - 1) {
-                messageToSend += "1";
-            }
-            else  {
-                messageToSend += "0";
-            }
-            sendMessageToClient(messageToSend, client);
-            c++;
-        }
-    }
+	//counting the related messages
+	for (int i = 0; i < AllMessages.size(); i++) {
+		if (AllMessages[i].getDestination() == clientName || AllMessages[i].getSender() == clientName) {
+			count++;
+		}
+	}
+	//if there are no related message we send end signal
+	if (count == 0) {
+		string endMessage = "You have no message history.0";
+		sendMessageToClient(endMessage, client);
+		return;
+	}
+	//scanning all messages and sending the related messages to client to print
+	int c = 0;
+	for (int i = 0; i < AllMessages.size(); i++) {
+		if (AllMessages[i].getSender() == clientName || AllMessages[i].getDestination() == clientName) {
+			string messageToSend = AllMessages[i].getTime() + AllMessages[i].getSender() + "->" + AllMessages[i].getDestination() + ": " + AllMessages[i].getMessage();
+			if (c != count - 1) {
+				messageToSend += "1";
+			}
+			else {
+				messageToSend += "0";
+			}
+			sendMessageToClient(messageToSend, client);
+			c++;
+		}
+	}
 
 
 }
@@ -351,55 +357,55 @@ static void sendMessageHistoryToUser(const SOCKET& client) {
  */
 static void sendUnseenMessagesToUser(SOCKET client_socket) {
 
-    //name of the client socket
-    string destinationName = allClientObjects[getClientIndex(client_socket)].getClientName();
-    int count = 0;
+	//name of the client socket
+	string destinationName = allClientObjects[getClientIndex(client_socket)].getClientName();
+	int count = 0;
 
-    //determining how many messages to send
-    for (int i = 0; i < allUnseenMessages.size(); i++) {
-        if (allUnseenMessages[i].getDestination() == destinationName) {
-            count++;
-        }
-    }
+	//determining how many messages to send
+	for (int i = 0; i < allUnseenMessages.size(); i++) {
+		if (allUnseenMessages[i].getDestination() == destinationName) {
+			count++;
+		}
+	}
 
-    if (count == 0) {
-        string msg = "No unseen message found!0";
-        sendMessageToClient(msg, client_socket);
-        return;
-    }
-        
-    //tracing the vector and sending suitable messages
-    for (int k = 0, c = 0; k < allUnseenMessages.size(); ) {
+	if (count == 0) {
+		string msg = "No unseen message found!0";
+		sendMessageToClient(msg, client_socket);
+		return;
+	}
 
-        //if this is not the last message to send
-        if (allUnseenMessages[k].getDestination() == destinationName && c < count - 1) {
+	//tracing the vector and sending suitable messages
+	for (int k = 0, c = 0; k < allUnseenMessages.size(); ) {
 
-            //if it is not the last message, the server puts '1' to the end
-            string msg = allUnseenMessages[k].getTime() + allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '1';
-            sendMessageToClient(msg, client_socket);
-            c++;
+		//if this is not the last message to send
+		if (allUnseenMessages[k].getDestination() == destinationName && c < count - 1) {
 
-            //after sending the message, the server deletes it from unseen messages
-            allUnseenMessages.erase(allUnseenMessages.begin() + k);
+			//if it is not the last message, the server puts '1' to the end
+			string msg = allUnseenMessages[k].getTime() + allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '1';
+			sendMessageToClient(msg, client_socket);
+			c++;
+
+			//after sending the message, the server deletes it from unseen messages
+			allUnseenMessages.erase(allUnseenMessages.begin() + k);
 
 
 
-        }
-        //last message to send
-        else if (allUnseenMessages[k].getDestination() == destinationName && c == count - 1) {
-            //if last it puts '0' to end of the message
-            string msg = allUnseenMessages[k].getTime() + allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '0';
-            sendMessageToClient(msg, client_socket);
-            //after sending the message, the server deletes it from unseen messages
-            allUnseenMessages.erase(allUnseenMessages.begin() + k);
-           
-        }
-        else
-        {
-            k++;
-        }
-    }
-    
+		}
+		//last message to send
+		else if (allUnseenMessages[k].getDestination() == destinationName && c == count - 1) {
+			//if last it puts '0' to end of the message
+			string msg = allUnseenMessages[k].getTime() + allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '0';
+			sendMessageToClient(msg, client_socket);
+			//after sending the message, the server deletes it from unseen messages
+			allUnseenMessages.erase(allUnseenMessages.begin() + k);
+
+		}
+		else
+		{
+			k++;
+		}
+	}
+
 }
 
 /**
@@ -410,40 +416,40 @@ static void sendUnseenMessagesToUser(SOCKET client_socket) {
  */
 static bool isDestinationsValid(const string& destinations, const SOCKET client_socket) {
 
-    //dividing the received names string and displaying
-    vector<string> allDestinations;
-    stringstream ss(destinations);
-    string singleDestination;
-    while (getline(ss, singleDestination, ' ')) {
-        //checks if the index already exists
-        if (!isInteger(singleDestination)) {
-            return false;
-        }
+	//dividing the received names string and displaying
+	vector<string> allDestinations;
+	stringstream ss(destinations);
+	string singleDestination;
+	while (getline(ss, singleDestination, ' ')) {
+		//checks if the index already exists
+		if (!isInteger(singleDestination)) {
+			return false;
+		}
 		//checking if the index is already in the vector, if not it adds it
-        if (find(allDestinations.begin(), allDestinations.end(), singleDestination) == allDestinations.end())
-            allDestinations.push_back(singleDestination);
-    }
+		if (find(allDestinations.begin(), allDestinations.end(), singleDestination) == allDestinations.end())
+			allDestinations.push_back(singleDestination);
+	}
 
-    //checking if the inputs are valid
-    for (int i = 0; i < allDestinations.size(); i++) {
+	//checking if the inputs are valid
+	for (int i = 0; i < allDestinations.size(); i++) {
 		//if the input is not a number or if it is not in the range of the client objects, it returns false
-        if ((stoi(allDestinations[i]) > allClientObjects.size()) || (stoi(allDestinations[i]) <= 0)) {
-            return false;
-        }
-    }
+		if ((stoi(allDestinations[i]) > allClientObjects.size()) || (stoi(allDestinations[i]) <= 0)) {
+			return false;
+		}
+	}
 
-    //creating the true int vector and adding it to the true ClientUser object in the storage
-    vector <string> newDestinations;
-    for (int i = 0; i < allDestinations.size(); i++) {
-        newDestinations.push_back(allClientObjects[stoi(allDestinations[i])-1].getClientName());
-    }
+	//creating the true int vector and adding it to the true ClientUser object in the storage
+	vector <string> newDestinations;
+	for (int i = 0; i < allDestinations.size(); i++) {
+		newDestinations.push_back(allClientObjects[stoi(allDestinations[i]) - 1].getClientName());
+	}
 
-    //determining the index from the storage
-	int indexOfTheUser = getClientIndex(client_socket); 
+	//determining the index from the storage
+	int indexOfTheUser = getClientIndex(client_socket);
 
-    //setting the ClientUser object's destinations
-    allClientObjects[indexOfTheUser].setDestinations(newDestinations);
-    return true;
+	//setting the ClientUser object's destinations
+	allClientObjects[indexOfTheUser].setDestinations(newDestinations);
+	return true;
 
 }
 /**
@@ -452,12 +458,12 @@ static bool isDestinationsValid(const string& destinations, const SOCKET client_
  * @return if exists or not
  */
 static bool isDuplicated(const string& name) {
-    for (int i = 0; i < allClientObjects.size(); i++) {
-        if (allClientObjects[i].getClientName() == name) {
-            return true;
-        }
-    }
-    return false;
+	for (int i = 0; i < allClientObjects.size(); i++) {
+		if (allClientObjects[i].getClientName() == name) {
+			return true;
+		}
+	}
+	return false;
 
 }
 
@@ -466,35 +472,35 @@ static bool isDuplicated(const string& name) {
  * @param client which client to send
  */
 static void sendClientAllUserNames(SOCKET client) {
-	    
-	//scanning all clients and sending their names
-    for (int i = 0, c = 0; i < allClientObjects.size(); i++) {
-        string nameToSend = allClientObjects[i].getClientName();
 
-        //determining the situation of the client
-        if (allClientObjects[i].getInMessageMode()) {
-            nameToSend += " (In Message Mode)";
-        }
-        else if (allClientObjects[i].getIsActive()) {
-            nameToSend += " (In Menu)";
-        }
-        else if (!allClientObjects[i].getIsActive()) {
-            nameToSend += " (Disconnected)";
-        }
+	//scanning all clients and sending their names
+	for (int i = 0, c = 0; i < allClientObjects.size(); i++) {
+		string nameToSend = allClientObjects[i].getClientName();
+
+		//determining the situation of the client
+		if (allClientObjects[i].getInMessageMode()) {
+			nameToSend += " (In Message Mode)";
+		}
+		else if (allClientObjects[i].getIsActive()) {
+			nameToSend += " (In Menu)";
+		}
+		else if (!allClientObjects[i].getIsActive()) {
+			nameToSend += " (Disconnected)";
+		}
 
 		//if the client is the last one, it sends '0' to the end of the name
-        if (c == allClientObjects.size() - 1) {
-            nameToSend += "0";
-            sendMessageToClient(nameToSend, client);
-           
-        }
+		if (c == allClientObjects.size() - 1) {
+			nameToSend += "0";
+			sendMessageToClient(nameToSend, client);
+
+		}
 		// if it is not the last one, it sends '1' to the end of the name
-        else {
-            nameToSend += "1";
-            c++;
-            sendMessageToClient(nameToSend, client);
-        }	
-    }
+		else {
+			nameToSend += "1";
+			c++;
+			sendMessageToClient(nameToSend, client);
+		}
+	}
 }
 
 /**
@@ -504,34 +510,34 @@ static void sendClientAllUserNames(SOCKET client) {
  */
 static bool handleChoosingDestinations(SOCKET client_socket) {
 
-    //sending user the names
-    sendClientAllUserNames(client_socket);
-    
+	//sending user the names
+	sendClientAllUserNames(client_socket);
+
 	//receiving the destinations from the user
-    string destinations;
-    if (!receiveMessageFromClient(destinations, client_socket))
-    {
-        return false;
-    }
-    string destinationsValid = "no";
+	string destinations;
+	if (!receiveMessageFromClient(destinations, client_socket))
+	{
+		return false;
+	}
+	string destinationsValid = "no";
 
-    //if the input is not valid, server repeats the process until the input is valid
-    while (!isDestinationsValid(destinations, client_socket)) {
-        
-        if (!sendMessageToClient(destinationsValid, client_socket))
-        {
-            return false;
-        }
-       if(!receiveMessageFromClient(destinations, client_socket))
-       {
-           return false;
-       }
+	//if the input is not valid, server repeats the process until the input is valid
+	while (!isDestinationsValid(destinations, client_socket)) {
 
-    }
-    //the input is valid, the server gives feedback
-    destinationsValid = "yes";
-    sendMessageToClient(destinationsValid, client_socket);
-    return true;
+		if (!sendMessageToClient(destinationsValid, client_socket))
+		{
+			return false;
+		}
+		if (!receiveMessageFromClient(destinations, client_socket))
+		{
+			return false;
+		}
+
+	}
+	//the input is valid, the server gives feedback
+	destinationsValid = "yes";
+	sendMessageToClient(destinationsValid, client_socket);
+	return true;
 }
 
 /**
@@ -540,72 +546,72 @@ static bool handleChoosingDestinations(SOCKET client_socket) {
  * @return if successful or not
  */
 static bool handleRegister(SOCKET client_socket)
-{   
-    int bytes;
-    ClientUser newClient;
-    string receivedName;
-    while (true)
-    {
-        //receiving the username
-        if (!receiveMessageFromClient(receivedName, client_socket))
-        {
-            cout << "A client disconnected in the register stage." << endl;
-            closesocket(client_socket);
-            return false;
-        }
-        //checking if it is duplicated
-        char exists = '0';
-        if (isDuplicated(receivedName))
-        {
-            exists = '1';
-        }
-        //sending the duplicated answer
-        if (!enhancedSendChar(exists,client_socket))
-        {   
-            cout << "A client disconnected in the register stage." << endl;
-            return false;
-        }
-        //if it is not duplicated, we break the loop
-        if (exists == '0') 
-        {
-            //the server registers the new client
-            newClient.setClientName(receivedName);
-            newClient.setClientSocket(client_socket);
+{
+	int bytes;
+	ClientUser newClient;
+	string receivedName;
+	while (true)
+	{
+		//receiving the username
+		if (!receiveMessageFromClient(receivedName, client_socket))
+		{
+			cout << "A client disconnected in the register stage." << endl;
+			closesocket(client_socket);
+			return false;
+		}
+		//checking if it is duplicated
+		char exists = '0';
+		if (isDuplicated(receivedName))
+		{
+			exists = '1';
+		}
+		//sending the duplicated answer
+		if (!enhancedSendChar(exists, client_socket))
+		{
+			cout << "A client disconnected in the register stage." << endl;
+			return false;
+		}
+		//if it is not duplicated, we break the loop
+		if (exists == '0')
+		{
+			//the server registers the new client
+			newClient.setClientName(receivedName);
+			newClient.setClientSocket(client_socket);
 			allClientObjects.push_back(newClient);
-            cout << "Client " << receivedName << " registered." << endl;
-            break;
-        }
-    }	
+			cout << "Client " << receivedName << " registered." << endl;
+			break;
+		}
+	}
 
-    //user will send signal to join the server
+	//user will send signal to join the server
 
-    while (true)
-    {
-        //waiting for the user to press enter
-        char connectRequest;
-        if (!enhancedRecvChar(connectRequest, client_socket)) {
-            return false;
-        }
+	while (true)
+	{
+		//waiting for the user to press enter
+		char connectRequest;
+		if (!enhancedRecvChar(connectRequest, client_socket)) {
+			return false;
+		}
 
-        char isAvailable = '1';
-        if (getActiveClientAmount() >= 3) 
-        {
-            isAvailable = '0';
-        }
-        //sending the signal to the user
-        if (!enhancedSendChar(isAvailable, client_socket))
-        {
-            return false;
+		char isAvailable = '1';
+		if (getActiveClientAmount() >= 3)
+		{
+			isAvailable = '0';
+		}
+		//sending the signal to the user
+		if (!enhancedSendChar(isAvailable, client_socket))
+		{
+			return false;
 
-        }
-        if (isAvailable == '1') 
-        {   
+		}
+		if (isAvailable == '1')
+		{
 			allClientObjects[getClientIndex(client_socket)].setIsActive(true);
-            cout << "Client " << receivedName << " connected." << endl;
-            return true; //user can join
-        }
+			cout << "Client " << receivedName << " connected." << endl;
+			return true; //user can join
+		}
 
-    }
+	}
 
 }
 
@@ -614,82 +620,85 @@ static bool handleRegister(SOCKET client_socket)
  * @param client_socket client socket to handle
  */
 static void handle_client_all(SOCKET client_socket) {
-	
-	//first we register the user
-    if (!handleRegister(client_socket)) { return; }
 
-    //now the user is in the menu
-    string action;
-    if (!receiveMessageFromClient(action, client_socket)){return;}
+	//first we register the user
+	if (!handleRegister(client_socket))
+	{
+		return;
+	}
+
+	//now the user is in the menu
+	string action;
+	if (!receiveMessageFromClient(action, client_socket)) { return; }
 
 	//acting depending on the action
-   while (true) {
+	while (true) {
 
-        //messaging mode
-        if (action == "1") {
-            if (!handleMessagingMode(client_socket)) { return; }
-        }
-        //choosing destinations
-        else if (action == "2") {
-            if (!handleChoosingDestinations(client_socket)) {return;}
-        }
-        //checking unseen messages
-        else if (action == "3") {
+		//messaging mode
+		if (action == "1") {
+			if (!handleMessagingMode(client_socket)) { return; }
+		}
+		//choosing destinations
+		else if (action == "2") {
+			if (!handleChoosingDestinations(client_socket)) { return; }
+		}
+		//checking unseen messages
+		else if (action == "3") {
 			sendUnseenMessagesToUser(client_socket);
-        }
-        //see all available users
-        else if (action == "4") {
-            sendClientAllUserNames(client_socket);
-        }
-        //looking messaging history
-        else if (action == "5") {
-            sendMessageHistoryToUser(client_socket);
-        }
-        //disconnect
-        else if (action == "6") {
-            if (!handleOfflineMode(client_socket)) {return;}
-        }
-        //updating the action
-        if (!receiveMessageFromClient(action, client_socket)) {return;}
-    }
+		}
+		//see all available users
+		else if (action == "4") {
+			sendClientAllUserNames(client_socket);
+		}
+		//looking messaging history
+		else if (action == "5") {
+			sendMessageHistoryToUser(client_socket);
+		}
+		//disconnect
+		else if (action == "6") {
+			if (!handleOfflineMode(client_socket)) { return; }
+		}
+		//updating the action
+		if (!receiveMessageFromClient(action, client_socket)) { return; }
+	}
 }
 
 int main() {
 
-    WSADATA wsa;
-    int result = WSAStartup(MAKEWORD(2, 2), &wsa);
-    SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+	WSADATA wsa;
+	int result = WSAStartup(MAKEWORD(2, 2), &wsa);
+	SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-    //defining server address
-    sockaddr_in serverAddress{};
-    serverAddress.sin_family = AF_INET;
-    serverAddress.sin_port = htons(8080);
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
+	//defining server address
+	sockaddr_in serverAddress{};
+	serverAddress.sin_family = AF_INET;
+	serverAddress.sin_port = htons(8080);
+	serverAddress.sin_addr.s_addr = INADDR_ANY;
 
-    //binding
-    bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
+	//binding
+	bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
 
-    //listening
-    //second parameter is the number of maximum waiting clients, for ex: if it is 5 it means that server can accept 5 clients and the sixth one will be declined
-    listen(serverSocket, SOMAXCONN);
+	//listening
+	//second parameter is the number of maximum waiting clients, for ex: if it is 5 it means that server can accept 5 clients and the sixth one will be declined
+	listen(serverSocket, SOMAXCONN);
 
-    cout << "Server started!" << endl;
-    while (result == 0) {
+	cout << "Server started!" << endl;
+	while (result == 0) {
 
-        //creating client socket
-        sockaddr_in client_addr{};
-        int client_size = sizeof(client_addr);
-        SOCKET client_socket = accept(serverSocket, (sockaddr*)&client_addr, &client_size);
+		//creating client socket
+		sockaddr_in client_addr{};
+		int client_size = sizeof(client_addr);
+		SOCKET client_socket = accept(serverSocket, (sockaddr*)&client_addr, &client_size);
 
 		//checking if the client socket is valid
-        if (client_socket == INVALID_SOCKET) {
-            cerr << "Error: " << WSAGetLastError() << endl;
-            continue; 
-        }
-        else {
-            thread(handle_client_all, client_socket).detach();
-        }
-    }
-    WSACleanup();
-    return 0;
+		if (client_socket == INVALID_SOCKET) {
+			cerr << "Error: " << WSAGetLastError() << endl;
+			continue;
+		}
+		else {
+			thread(handle_client_all, client_socket).detach();
+		}
+	}
+	WSACleanup();
+	return 0;
 }
