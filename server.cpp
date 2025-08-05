@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <thread>
@@ -34,8 +34,11 @@ static int getClientIndex(SOCKET client) {
  * @return index
  */
 static int getClientIndexByName(const string& name) {
-    for (int i = 0; i < allClientObjects.size(); i++) {
-        if (allClientObjects[i].getClientName() == name) {
+    for (int i = 0; i < allClientObjects.size(); i++) 
+    {
+
+        if (allClientObjects[i].getClientName() == name) 
+        {
             return i;
         }
     }
@@ -46,34 +49,52 @@ static int getClientIndexByName(const string& name) {
  * @param client_socket client socket to delete
  */
 static void deleteClient(SOCKET client_socket) {
-
-	// Find the index of the client in the storage to delete
     cout << "Client " << allClientObjects[getClientIndex(client_socket)].getClientName() << " quit." << endl;
-	// Clear the destinations of the deleted client
     allClientObjects.erase(allClientObjects.begin() + getClientIndex(client_socket));
 }
-
 /**
- * a method for receiving strings from the client, it handles the socket errors
+ * a method for receiving string message from the client
  * @param s string to store the received string
  * @param client_socket client socket to handle
  * @return if successful or not
  */
-static bool enhancedRecvStr(string& s, SOCKET client_socket) {
-
-	char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	int bytesReceived = recv(client_socket, buffer, sizeof(buffer), 0);
-    if (bytesReceived <= 0) {
-		deleteClient(client_socket);
+static bool receiveMessageFromClient(string& s,SOCKET client_socket) {
+    int length = 0;
+    int index = getClientIndex(client_socket);
+    int bytesReceived = recv(client_socket, (char*)&length, 1, 0);
+    if (bytesReceived <= 0) 
+    {
+        if (index != -1)
+        {      
+            deleteClient(client_socket);
+        }
         closesocket(client_socket);
         return false;
     }
-    else {
-        s = buffer;
-		return true;
-    }
+    char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
+    recv(client_socket, buffer, length, 0);
+    s = buffer;
+    return true;   
 }
+static bool sendMessageToClient(const string& message, SOCKET client_socket) {
+    uint8_t length = static_cast<uint8_t>(message.size());
+    char packet[1024]{};
+    packet[0] = length;
+    memcpy(packet + 1, message.c_str(), length);
+    int bytes = send(client_socket, packet, 1 + length, 0);
+    int index = getClientIndex(client_socket);
+    if (bytes <= 0)
+    {   
+        if (index != -1)
+        {
+            deleteClient(client_socket);
+        }
+        return false;
+    }
+    return true;
+}
+
 /**
  * a method for receiving characters from the client, it handles the socket errors
  * @param c character to store the received character
@@ -82,32 +103,19 @@ static bool enhancedRecvStr(string& s, SOCKET client_socket) {
  */
 static bool enhancedRecvChar(char& c, SOCKET client_socket) {
     int bytesReceived = recv(client_socket, &c, sizeof(c), 0);
+    int index = getClientIndex(client_socket);
     if (bytesReceived <= 0) {
-        deleteClient(client_socket);
+        if (index != -1)
+        {
+            deleteClient(client_socket);
+        }        
         closesocket(client_socket);
         return false;
 
     }
     return true;
 }
-/**
- * a method for sending strings to the client, it handles the socket errors
- * @param s string to send
- * @param client_socket client socket to handle
- * @return if successful or not
- */
-static bool enhancedSendStr(const string& s, SOCKET client_socket) {
-    int bytesSent = send(client_socket, s.c_str(), s.length(), 0);
-    if (bytesSent <= 0) {
-        deleteClient(client_socket);
-        closesocket(client_socket);
-        return false;
 
-    }
-    else {
-        return true;
-    }
-}
 /**
  * a method for sending characters to the client, it handles the socket errors
  * @param c character to send
@@ -117,7 +125,12 @@ static bool enhancedSendStr(const string& s, SOCKET client_socket) {
 static bool enhancedSendChar(const char& c, SOCKET client_socket) {
         int bytesSent = send(client_socket, &c, sizeof(c), 0);
         if (bytesSent <= 0) {
-            deleteClient(client_socket);
+            
+            if(getClientIndex(client_socket) != -1)
+            { 
+                deleteClient(client_socket);
+            }
+            
             closesocket(client_socket);
             return false;
         }
@@ -237,7 +250,7 @@ static bool handleMessagingMode(SOCKET client_socket) {
 	//messaging mode starts
     //receiving the message
     string msg;
-    if (!enhancedRecvStr(msg, client_socket)) {
+    if (!receiveMessageFromClient(msg, client_socket)) {
         return false;
     }
     while (msg != "/exit") {
@@ -269,7 +282,7 @@ static bool handleMessagingMode(SOCKET client_socket) {
                 cout << newMessage.getTime() + newMessage.getSender() << "->" << newMessage.getDestination() << ": " << newMessage.getMessage() << endl;
                 //sending the message
                 
-				if(!enhancedSendStr(messageToSend, allClientObjects[destinationIndex].getClientSocket()))
+				if(!sendMessageToClient(messageToSend, allClientObjects[destinationIndex].getClientSocket()))
                 {
                     return false;
                 }
@@ -277,13 +290,13 @@ static bool handleMessagingMode(SOCKET client_socket) {
 
         }
         //receiving the message
-        if (!enhancedRecvStr(msg, client_socket)) {
+        if (!receiveMessageFromClient(msg, client_socket)) {
             return false;
         }
     }
-	//if the user exits the messaging mode, we send a signal to stop the messaging mode
+	//if the user exits the messaging mode, we send a signal to stop the thread for displaying messages
     string finish = "/*/exit/*/";
-    if (!enhancedSendStr(finish, client_socket)) { return false; }
+    if (!sendMessageToClient(finish, client_socket)) { return false; }
     //setting the messaging mode to false
     allClientObjects[clientIndex].setInMessageMode(false);
     return true;
@@ -311,7 +324,7 @@ static void sendMessageHistoryToUser(const SOCKET& client) {
     //if there are no related message we send end signal
     if (count == 0) {
         string endMessage = "You have no message history.0";
-		enhancedSendStr(endMessage, client);
+        sendMessageToClient(endMessage, client);
         return;
     }
     //scanning all messages and sending the related messages to client to print
@@ -325,9 +338,7 @@ static void sendMessageHistoryToUser(const SOCKET& client) {
             else  {
                 messageToSend += "0";
             }
-			enhancedSendStr(messageToSend, client);
-            string feedback;
-			enhancedRecvStr(feedback, client); // receiving feedback to stop TCP from breaking the messages
+            sendMessageToClient(messageToSend, client);
             c++;
         }
     }
@@ -353,7 +364,7 @@ static void sendUnseenMessagesToUser(SOCKET client_socket) {
 
     if (count == 0) {
         string msg = "No unseen message found!0";
-        enhancedSendStr(msg, client_socket);
+        sendMessageToClient(msg, client_socket);
         return;
     }
         
@@ -365,28 +376,22 @@ static void sendUnseenMessagesToUser(SOCKET client_socket) {
 
             //if it is not the last message, the server puts '1' to the end
             string msg = allUnseenMessages[k].getTime() + allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '1';
-			enhancedSendStr(msg, client_socket);
+            sendMessageToClient(msg, client_socket);
             c++;
 
             //after sending the message, the server deletes it from unseen messages
             allUnseenMessages.erase(allUnseenMessages.begin() + k);
 
-            //taking feedback for stoping TCP to break the messages
-			string feedback;
-            enhancedRecvStr(feedback, client_socket);
+
 
         }
         //last message to send
         else if (allUnseenMessages[k].getDestination() == destinationName && c == count - 1) {
             //if last it puts '0' to end of the message
             string msg = allUnseenMessages[k].getTime() + allUnseenMessages[k].getSender() + ": " + allUnseenMessages[k].getMessage() + '0';
-			enhancedSendStr(msg, client_socket);    
+            sendMessageToClient(msg, client_socket);
             //after sending the message, the server deletes it from unseen messages
             allUnseenMessages.erase(allUnseenMessages.begin() + k);
-
-            //taking feedback for stoping TCP to break the messages
-			string feedback;
-            enhancedRecvStr(feedback, client_socket);
            
         }
         else
@@ -466,6 +471,7 @@ static void sendClientAllUserNames(SOCKET client) {
     for (int i = 0, c = 0; i < allClientObjects.size(); i++) {
         string nameToSend = allClientObjects[i].getClientName();
 
+        //determining the situation of the client
         if (allClientObjects[i].getInMessageMode()) {
             nameToSend += " (In Message Mode)";
         }
@@ -479,22 +485,16 @@ static void sendClientAllUserNames(SOCKET client) {
 		//if the client is the last one, it sends '0' to the end of the name
         if (c == allClientObjects.size() - 1) {
             nameToSend += "0";
-			enhancedSendStr(nameToSend, client);
-            char read;
-			enhancedRecvChar(read, client);
+            sendMessageToClient(nameToSend, client);
+           
         }
 		// if it is not the last one, it sends '1' to the end of the name
         else {
             nameToSend += "1";
             c++;
-			enhancedSendStr(nameToSend, client);
-            char read;
-			enhancedRecvChar(read, client);
+            sendMessageToClient(nameToSend, client);
         }	
     }
-	//sending the end signal to the client
-	char done = '1';
-	enhancedSendChar(done, client);
 }
 
 /**
@@ -509,57 +509,60 @@ static bool handleChoosingDestinations(SOCKET client_socket) {
     
 	//receiving the destinations from the user
     string destinations;
-    if (!enhancedRecvStr(destinations, client_socket)) 
-		return false;   
-
+    if (!receiveMessageFromClient(destinations, client_socket))
+    {
+        return false;
+    }
     string destinationsValid = "no";
+
     //if the input is not valid, server repeats the process until the input is valid
     while (!isDestinationsValid(destinations, client_socket)) {
         
-        if (!enhancedSendStr(destinationsValid, client_socket))  
-            return false; 
-       if(!enhancedRecvStr(destinations, client_socket))  
-            return false; 
+        if (!sendMessageToClient(destinationsValid, client_socket))
+        {
+            return false;
+        }
+       if(!receiveMessageFromClient(destinations, client_socket))
+       {
+           return false;
+       }
 
     }
     //the input is valid, the server gives feedback
     destinationsValid = "yes";
-	enhancedSendStr(destinationsValid, client_socket);
+    sendMessageToClient(destinationsValid, client_socket);
     return true;
 }
 
+/**
+ * this method handles registration of the given client socket
+ * @param client_socket client socket to handle
+ * @return if successful or not
+ */
 static bool handleRegister(SOCKET client_socket)
 {   
     int bytes;
-    char buffer[1024];
-	string receivedName;
     ClientUser newClient;
-
+    string receivedName;
     while (true)
     {
         //receiving the username
-        memset(buffer, 0, sizeof(buffer));
-        bytes = recv(client_socket, buffer, sizeof(buffer), 0);
-        if (bytes <= 0)
+        if (!receiveMessageFromClient(receivedName, client_socket))
         {
             cout << "A client disconnected in the register stage." << endl;
             closesocket(client_socket);
             return false;
         }
-
-        receivedName = buffer;
         //checking if it is duplicated
         char exists = '0';
-        if (isDuplicated(receivedName)) 
+        if (isDuplicated(receivedName))
         {
             exists = '1';
         }
         //sending the duplicated answer
-        bytes = send(client_socket, &exists, 1, 0);
-        if (bytes <= 0)
+        if (!enhancedSendChar(exists,client_socket))
         {   
             cout << "A client disconnected in the register stage." << endl;
-			closesocket(client_socket);
             return false;
         }
         //if it is not duplicated, we break the loop
@@ -580,7 +583,9 @@ static bool handleRegister(SOCKET client_socket)
     {
         //waiting for the user to press enter
         char connectRequest;
-        recv(client_socket, &connectRequest, 1, 0);
+        if (!enhancedRecvChar(connectRequest, client_socket)) {
+            return false;
+        }
 
         char isAvailable = '1';
         if (getActiveClientAmount() >= 3) 
@@ -588,11 +593,14 @@ static bool handleRegister(SOCKET client_socket)
             isAvailable = '0';
         }
         //sending the signal to the user
-        send(client_socket, &isAvailable, 1, 0);
+        if (!enhancedSendChar(isAvailable, client_socket))
+        {
+            return false;
+
+        }
         if (isAvailable == '1') 
         {   
-			int index = getClientIndex(client_socket);
-			allClientObjects[index].setIsActive(true);
+			allClientObjects[getClientIndex(client_socket)].setIsActive(true);
             cout << "Client " << receivedName << " connected." << endl;
             return true; //user can join
         }
@@ -608,14 +616,14 @@ static bool handleRegister(SOCKET client_socket)
 static void handle_client_all(SOCKET client_socket) {
 	
 	//first we register the user
-    if (!handleRegister(client_socket))return;
+    if (!handleRegister(client_socket)) { return; }
 
     //now the user is in the menu
     string action;
-    if (!enhancedRecvStr(action, client_socket)){return;}
+    if (!receiveMessageFromClient(action, client_socket)){return;}
 
 	//acting depending on the action
-    while (true) {
+   while (true) {
 
         //messaging mode
         if (action == "1") {
@@ -642,7 +650,7 @@ static void handle_client_all(SOCKET client_socket) {
             if (!handleOfflineMode(client_socket)) {return;}
         }
         //updating the action
-        if (!enhancedRecvStr(action, client_socket)) {return;}
+        if (!receiveMessageFromClient(action, client_socket)) {return;}
     }
 }
 

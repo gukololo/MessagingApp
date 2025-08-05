@@ -24,6 +24,35 @@ enum class State {
 };
 // Global variable to keep track of the current state
 State currentState;
+
+
+bool sendMessageToServer(string message,SOCKET clientSocket) 
+{
+	uint8_t length = static_cast<uint8_t>(message.size());
+	char packet[1024]{};
+	packet[0] = length;
+	memcpy(packet + 1, message.c_str(), length);
+	int bytes = send(clientSocket, packet,1+length, 0);
+	if (bytes <= 0)
+	{	
+		currentState = State::TERMINATE;
+		return false;
+	}
+	return true;
+}
+bool receiveMessageFromServer(string& s, SOCKET client_socket) {
+	int length = 0;
+	int bytesReceived = recv(client_socket, (char*)&length, 1, 0);
+	if (bytesReceived <= 0) {
+		currentState = State::TERMINATE;
+		return false;
+	}
+	char buffer[1024];
+	memset(buffer, 0, sizeof(buffer));
+	recv(client_socket, buffer, length, 0);
+	s = buffer;
+	return true;
+}
 /**
  * Returns the current hour and minute in the format [HH:MM]
  * @return string in the form [hour:minute]
@@ -101,33 +130,23 @@ static void openOfflineMode(SOCKET client) {
  */
 static void displayActiveClients(SOCKET clientSocket) {
 
-	char buffer[1024];
 	int count = 0;
 	bool terminate = false;
 	//receiving all active clients from the server
 	while (!terminate) {
-		memset(buffer, 0, sizeof(buffer));
-		recv(clientSocket, buffer, sizeof(buffer), 0);
-		string receivedUsername = buffer;
+		
+		string receivedUsername;
+		receiveMessageFromServer(receivedUsername, clientSocket);
 		count++;
 
 		//printing the received username
 		cout << count << "." << receivedUsername.substr(0, receivedUsername.size() - 1) << endl;
 
-		//feedback to the server that we received the username
-		char read = '1';
-		send(clientSocket, &read, 1, 0);
-		//checking if it is the last username
 		if (receivedUsername.back() == '0') {
 			terminate = true;
 		}
-
 	}
-	//sending end signal to the server
-	char done;
-	recv(clientSocket, &done, sizeof(done), 0);
 	cout << endl;
-
 	//after displaying active users, the user is sent back to the menu
 	currentState = State::MENU; //change state to MENU
 }
@@ -150,17 +169,10 @@ static void handleChoosingDestinations(SOCKET clientSocket) {
 			getline(cin, destinations);
 		}
 
-	int bytes = send(clientSocket, destinations.c_str(), static_cast <int>(destinations.length()), 0);
-	if (bytes <= 0) {
-		currentState = State::TERMINATE;
-		return;
-	}
-	
-	//receiving answer for validation
-	char buffer[1024];//char array to receive messages
-	memset(buffer, 0, sizeof(buffer));
-	recv(clientSocket, buffer, sizeof(buffer), 0);
-	string validationAnswer = buffer;
+		sendMessageToServer(destinations, clientSocket);
+		string validationAnswer;
+
+		receiveMessageFromServer(validationAnswer, clientSocket);
 
 	//if the input is not valid, taking input until it is valid
 	while (validationAnswer == "no") {
@@ -171,16 +183,8 @@ static void handleChoosingDestinations(SOCKET clientSocket) {
 
 		if(!destinations.empty())
 		{
-			int bytes = send(clientSocket, destinations.c_str(), static_cast <int>(destinations.length()), 0);
-
-			if (bytes <= 0) {
-				currentState = State::TERMINATE;
-				return;
-
-			}
-			memset(buffer, 0, sizeof(buffer));
-			recv(clientSocket, buffer, sizeof(buffer), 0);
-			validationAnswer = buffer;
+			sendMessageToServer(destinations, clientSocket);
+			receiveMessageFromServer(validationAnswer, clientSocket);	
 		}
 	}
 	cout << "Your message destinations are sets successfully !" << endl;
@@ -206,20 +210,14 @@ static string retakeAction() {
  * @param client client socket to handle
  */
 static void displayMessages(SOCKET client) {
-	char buffer[1024];
 	while (true) {
-		//receiving messages
-		memset(buffer, 0, sizeof(buffer));
-		int bytes = recv(client, buffer, sizeof(buffer), 0);
-
-		if (bytes <= 0) {
-			break;
-		}
-		string msg = buffer;
+		string msg;
+		receiveMessageFromServer(msg, client);
 		if (msg == "/*/exit/*/")
+		{
 			return;
+		}
 		//display
-
 		cout << msg << endl;
 	}
 }
@@ -230,7 +228,11 @@ static void displayMessages(SOCKET client) {
 static void handleMessagingMode(SOCKET clientSocket) {
 	cout << "Opening message mode. Type /exit to exit." << endl;
 	char isDestinationEmpty;
-	recv(clientSocket, &isDestinationEmpty, sizeof(isDestinationEmpty), 0);
+	int bytes = recv(clientSocket, &isDestinationEmpty, 1, 0);
+	if (bytes <= 0) {
+		currentState = State::TERMINATE;
+		return;
+	}
 	string msg;
 	thread(displayMessages, clientSocket).detach();
 	while (msg != "/exit") {
@@ -244,13 +246,8 @@ static void handleMessagingMode(SOCKET clientSocket) {
 			cout << "Cannot send message, you have no destinations! " << endl;
 		}
 		else {
-			int bytes = send(clientSocket, msg.c_str(), static_cast <int>(msg.length()), 0);
-			if (bytes <= 0) {
-				currentState = State::TERMINATE;
-				return;
-			}
+			sendMessageToServer(msg, clientSocket);
 		}
-	
 	}
 	currentState = State::MENU; //change state to MENU
 }
@@ -260,30 +257,19 @@ static void handleMessagingMode(SOCKET clientSocket) {
  */
 static void receiveAndDisplayUnseenMessages(SOCKET client) {
 
-	char buffer[1024]; //char array to receive messages
 	bool terminate = false; //boolean that depends on if the received message is the last one
 
 	while (!terminate) 
 	{
-
-		//receiving message
-		memset(buffer, 0, sizeof(buffer));
-		recv(client, buffer, sizeof(buffer), 0);
-		string msg = buffer;
-
+		string msg;
+		receiveMessageFromServer(msg, client);
 		//determine if it is the last one
 		if (msg.back() == '0')
 		{
 			terminate = true;
 		}
-
 		//display the message
 		cout << msg.substr(0, msg.size() - 1) << endl;
-
-		//giving feedback
-		string feedback = "read";
-		send(client, feedback.c_str(), static_cast <int>(feedback.size()), 0);
-
 	}
 	cout << endl;
 	//after displaying unseen messages, the user is sent back to the menu
@@ -296,31 +282,20 @@ static void receiveAndDisplayUnseenMessages(SOCKET client) {
  */
 static void receiveAndDisplayHistory(SOCKET client) {
 
-	char buffer[1024]; //char array to receive messages
+	
 	bool terminate = false; //boolean that depends on if the received message is the last one
 	cout << endl;
 	while (!terminate) 
 	{
-
-		//receiving message
-		memset(buffer, 0, sizeof(buffer));
-		recv(client, buffer, sizeof(buffer), 0);
-		string msg = buffer;
-
+		string msg;
+		receiveMessageFromServer(msg, client);
 		//determine if it is the last one
 		if (msg.back() == '0')
 		{
 			terminate = true;
 		}
-
 		//display the message
 		cout << msg.substr(0, msg.size() - 1) << endl;
-
-		//giving feedback
-		string feedback = "read";
-		send(client, feedback.c_str(), static_cast <int>(feedback.size()), 0);
-
-
 	}
 	cout << endl;
 	currentState = State::MENU; //change state to MENU  
@@ -343,8 +318,8 @@ static void handleMenuMode(SOCKET clientSocket) {
 	}
 
 	//sending the action to the server
-	int bytes = send(clientSocket, action.c_str(), static_cast <int>(action.length()), 0);
-	if (bytes <= 0) {
+	
+	if (!sendMessageToServer(action,clientSocket)) {
 		currentState = State::TERMINATE; //change state to TERMINATE
 		return; //if sending fails
 	}
@@ -388,7 +363,7 @@ static void handleRegisterMode(SOCKET clientSocket) {
 				getline(cin, username);
 				cout << endl;
 			}
-			send(clientSocket, username.c_str(), static_cast<int>(username.length()), 0);
+			sendMessageToServer(username, clientSocket);
 			recv(clientSocket, &isDuplicated, 1, 0);
 
 			if (isDuplicated == '1') {
@@ -400,9 +375,11 @@ static void handleRegisterMode(SOCKET clientSocket) {
 
 		//after the username is chosen, we wait for the user to press enter to join the server
 		while (true) {
+
 			cout << "Press enter to join to server! " <<endl;
 			string enterKey;
 			getline(cin, enterKey);
+			
 			if(enterKey.empty()) {
 				//send a signal to the server that the user is ready to join
 				char readySignal = '1';
@@ -439,7 +416,7 @@ int main() {
 
 	//connecting to the server
 	connect(clientSocket, (struct sockaddr*)&server_addr, sizeof(server_addr));
-
+	
 	currentState = State::REGISTER; //set initial state to REGISTER
 	while (result == 0) {
 
