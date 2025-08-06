@@ -59,11 +59,10 @@ static void deleteClient(SOCKET client_socket) {
  * @return if successful or not
  */
 static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
-	int length = 0;
+	uint8_t highByte, lowByte;
 	int index = getClientIndex(client_socket);
-	int bytesReceived = recv(client_socket, (char*)&length, 1, 0);
-	if (bytesReceived <= 0)
-	{
+
+	if (recv(client_socket, reinterpret_cast<char*>(&highByte), 1, 0) <= 0) {
 		if (index != -1)
 		{
 			deleteClient(client_socket);
@@ -71,12 +70,23 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 		closesocket(client_socket);
 		return false;
 	}
-	char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
+
+	if (recv(client_socket, reinterpret_cast<char*>(&lowByte), 1, 0) <= 0) {
+		if (index != -1)
+		{ 
+			deleteClient(client_socket);
+		}
+		closesocket(client_socket);
+		return false;
+	}
+
+	uint16_t length = (static_cast<uint16_t>(highByte) << 8) + static_cast<uint16_t>(lowByte);
+	char buffer[65536]{};
 	recv(client_socket, buffer, length, 0);
 	s = buffer;
 	return true;
 }
+
 /**
 * this method sends messages to client with length header
 * @param message string message to send
@@ -84,25 +94,26 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 * @return if successful or not
 */
 static bool sendMessageToClient(const string& message, SOCKET client_socket) {
-	
-	//header for the message length
-	uint8_t length = static_cast<uint8_t>(message.size());
-	char packet[1024]{};
-	packet[0] = length;
-	memcpy(packet + 1, message.c_str(), length);
-	int bytes = send(client_socket, packet, 1 + length, 0);
+	uint16_t length = static_cast<uint16_t>(message.size());
+
+	uint8_t highByte = static_cast<uint8_t>(length >> 8);
+	uint8_t lowByte = static_cast<uint8_t>(length);
+
+	char packet[65536]{};
+	packet[0] = highByte;
+	packet[1] = lowByte;
+	memcpy(packet + 2, message.c_str(), length);
+
+	int bytes = send(client_socket, packet, 2 + length, 0);
 	int index = getClientIndex(client_socket);
-	//checking if the bytes sent is less than or equal to 0
-	if (bytes <= 0)
-	{
-		if (index != -1)
-		{
-			deleteClient(client_socket);
-		}
+
+	if (bytes <= 0) {
+		if (index != -1) deleteClient(client_socket);
 		return false;
 	}
 	return true;
 }
+
 
 /**
  * a method for receiving characters from the client, it handles the socket errors

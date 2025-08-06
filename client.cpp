@@ -31,20 +31,25 @@ State currentState;
  * @param clientSocket The socket to send the message through
  * @return true if the message was sent successfully, false otherwise
  */
-bool static sendMessageToServer(string message, SOCKET clientSocket)
-{
-	uint8_t length = static_cast<uint8_t>(message.size());
-	char packet[1024]{};
-	packet[0] = length;
-	memcpy(packet + 1, message.c_str(), length);
-	int bytes = send(clientSocket, packet, 1 + length, 0);
-	if (bytes <= 0)
-	{
+bool static sendMessageToServer(string message, SOCKET clientSocket) {
+	uint16_t length = static_cast<uint16_t>(message.size());
+
+	uint8_t highByte = static_cast<uint8_t>(length >> 8);
+	uint8_t lowByte = static_cast<uint8_t>(length);
+
+	char packet[65536]{};
+	packet[0] = highByte;
+	packet[1] = lowByte;
+	memcpy(packet + 2, message.c_str(), length);
+
+	int bytes = send(clientSocket, packet, 2 + length, 0);
+	if (bytes <= 0) {
 		currentState = State::TERMINATE;
 		return false;
 	}
 	return true;
 }
+
 /**
  * Receives a message from the server
  * @param s The string to store the received message
@@ -52,18 +57,25 @@ bool static sendMessageToServer(string message, SOCKET clientSocket)
  * @return true if the message was received successfully, false otherwise
  */
 bool static receiveMessageFromServer(string& s, SOCKET client_socket) {
-	int length = 0;
-	int bytesReceived = recv(client_socket, (char*)&length, 1, 0);
-	if (bytesReceived <= 0) {
+	uint8_t highByte, lowByte;
+
+	if (recv(client_socket, reinterpret_cast<char*>(&highByte), 1, 0) <= 0) {
 		currentState = State::TERMINATE;
 		return false;
 	}
-	char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
+
+	if (recv(client_socket, reinterpret_cast<char*>(&lowByte), 1, 0) <= 0) {
+		currentState = State::TERMINATE;
+		return false;
+	}
+	uint16_t length = (static_cast<uint16_t>(highByte) << 8) + static_cast<uint16_t>(lowByte);
+	char buffer[65536]{};
+	int totalReceived = 0;
 	recv(client_socket, buffer, length, 0);
 	s = buffer;
 	return true;
 }
+
 /**
  * Returns the current hour and minute in the format [HH:MM]
  * @return string in the form [hour:minute]
