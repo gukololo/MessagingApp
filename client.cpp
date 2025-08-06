@@ -25,7 +25,12 @@ enum class State {
 // Global variable to keep track of the current state
 State currentState;
 
-
+/**
+ * Sends a message to the server
+ * @param message The message to send
+ * @param clientSocket The socket to send the message through
+ * @return true if the message was sent successfully, false otherwise
+ */
 bool static sendMessageToServer(string message, SOCKET clientSocket)
 {
 	uint8_t length = static_cast<uint8_t>(message.size());
@@ -40,6 +45,12 @@ bool static sendMessageToServer(string message, SOCKET clientSocket)
 	}
 	return true;
 }
+/**
+ * Receives a message from the server
+ * @param s The string to store the received message
+ * @param client_socket The socket to receive the message from
+ * @return true if the message was received successfully, false otherwise
+ */
 bool static receiveMessageFromServer(string& s, SOCKET client_socket) {
 	int length = 0;
 	int bytesReceived = recv(client_socket, (char*)&length, 1, 0);

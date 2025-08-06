@@ -84,12 +84,15 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 * @return if successful or not
 */
 static bool sendMessageToClient(const string& message, SOCKET client_socket) {
+	
+	//header for the message length
 	uint8_t length = static_cast<uint8_t>(message.size());
 	char packet[1024]{};
 	packet[0] = length;
 	memcpy(packet + 1, message.c_str(), length);
 	int bytes = send(client_socket, packet, 1 + length, 0);
 	int index = getClientIndex(client_socket);
+	//checking if the bytes sent is less than or equal to 0
 	if (bytes <= 0)
 	{
 		if (index != -1)
@@ -214,7 +217,9 @@ static bool handleOfflineMode(SOCKET client_socket) {
 
 		char receiveSignal;
 		if (!enhancedRecvChar(receiveSignal, client_socket))
+		{
 			return false;
+		}
 
 		char sendSignal = '0';
 
