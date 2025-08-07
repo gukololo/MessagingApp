@@ -5,6 +5,9 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include "MessageFormat.h"
+
+
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
@@ -33,17 +36,11 @@ State currentState;
  */
 bool static sendMessageToServer(string message, SOCKET clientSocket) {
 	uint16_t length = static_cast<uint16_t>(message.size());
-
-	uint8_t highByte = static_cast<uint8_t>(length >> 8);
-	uint8_t lowByte = static_cast<uint8_t>(length);
-
-	char packet[65536]{};
-	packet[0] = highByte;
-	packet[1] = lowByte;
-	memcpy(packet + 2, message.c_str(), length);
-
-	int bytes = send(clientSocket, packet, 2 + length, 0);
-	if (bytes <= 0) {
+	//creating packet to send
+	MessageFormat mf{};
+	mf.length = length;
+	memcpy(mf.data, message.c_str(), length);
+	if (send(clientSocket, (const char*)&mf, length + 2, 0) <= 0) {
 		currentState = State::TERMINATE;
 		return false;
 	}
@@ -57,22 +54,17 @@ bool static sendMessageToServer(string message, SOCKET clientSocket) {
  * @return true if the message was received successfully, false otherwise
  */
 bool static receiveMessageFromServer(string& s, SOCKET client_socket) {
-	uint8_t highByte, lowByte;
-
-	if (recv(client_socket, reinterpret_cast<char*>(&highByte), 1, 0) <= 0) {
+	MessageFormat mf{};
+	if(recv(client_socket, (char*)&mf.length, 2, 0) <= 0)
+	{
 		currentState = State::TERMINATE;
 		return false;
 	}
-
-	if (recv(client_socket, reinterpret_cast<char*>(&lowByte), 1, 0) <= 0) {
+	if (recv(client_socket, (char*)&mf.data, mf.length, 0) <= 0) {
 		currentState = State::TERMINATE;
 		return false;
 	}
-	uint16_t length = (static_cast<uint16_t>(highByte) << 8) + static_cast<uint16_t>(lowByte);
-	char buffer[65536]{};
-	int totalReceived = 0;
-	recv(client_socket, buffer, length, 0);
-	s = buffer;
+	s = string(mf.data, mf.length);
 	return true;
 }
 
@@ -233,7 +225,10 @@ static string retakeAction() {
 static void displayMessages(SOCKET client) {
 	while (true) {
 		string msg;
-		receiveMessageFromServer(msg, client);
+		if (!receiveMessageFromServer(msg, client))
+		{
+			return;
+		}
 		if (msg == "/*/exit/*/")
 		{
 			return;

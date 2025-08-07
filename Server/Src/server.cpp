@@ -6,8 +6,11 @@
 #include <string>
 #include <sstream>
 #include <ctime>
+#include <stdint.h>
 #include "ClientUser.h"
 #include "Message.h"
+#include "MessageFormat.h"
+
 #pragma comment(lib, "ws2_32.lib")
 using namespace std;
 
@@ -59,10 +62,10 @@ static void deleteClient(SOCKET client_socket) {
  * @return if successful or not
  */
 static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
-	uint8_t highByte, lowByte;
 	int index = getClientIndex(client_socket);
+	MessageFormat mf;
 
-	if (recv(client_socket, reinterpret_cast<char*>(&highByte), 1, 0) <= 0) {
+	if (recv(client_socket, (char *) &mf.length, 2, 0) <= 0) {
 		if (index != -1)
 		{
 			deleteClient(client_socket);
@@ -71,19 +74,10 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 		return false;
 	}
 
-	if (recv(client_socket, reinterpret_cast<char*>(&lowByte), 1, 0) <= 0) {
-		if (index != -1)
-		{ 
-			deleteClient(client_socket);
-		}
-		closesocket(client_socket);
-		return false;
-	}
+	recv(client_socket, (char *) & mf.data, mf.length, 0);
 
-	uint16_t length = (static_cast<uint16_t>(highByte) << 8) + static_cast<uint16_t>(lowByte);
-	char buffer[65536]{};
-	recv(client_socket, buffer, length, 0);
-	s = buffer;
+	s = string(mf.data, mf.length);
+
 	return true;
 }
 
@@ -94,21 +88,18 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 * @return if successful or not
 */
 static bool sendMessageToClient(const string& message, SOCKET client_socket) {
-	uint16_t length = static_cast<uint16_t>(message.size());
 
-	uint8_t highByte = static_cast<uint8_t>(length >> 8);
-	uint8_t lowByte = static_cast<uint8_t>(length);
-
-	char packet[65536]{};
-	packet[0] = highByte;
-	packet[1] = lowByte;
-	memcpy(packet + 2, message.c_str(), length);
-
-	int bytes = send(client_socket, packet, 2 + length, 0);
-	int index = getClientIndex(client_socket);
-
-	if (bytes <= 0) {
-		if (index != -1) deleteClient(client_socket);
+	uint16_t length = static_cast <uint16_t> (message.size());
+	int indexOfClient = getClientIndex(client_socket);
+	MessageFormat mf{};
+	mf.length = length;
+	memcpy(mf.data, message.c_str(), length);
+	
+	if (send(client_socket, (const char*)&mf, length + 2, 0) <= 0) {
+		if (indexOfClient != -1) {
+			deleteClient(client_socket);
+		}
+		closesocket(client_socket);
 		return false;
 	}
 	return true;
