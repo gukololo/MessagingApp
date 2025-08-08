@@ -28,6 +28,9 @@
     <ClInclude Include="Inc\ClientUser.h" />
     <ClInclude Include="Inc\Message.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

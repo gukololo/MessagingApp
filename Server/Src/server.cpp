@@ -65,6 +65,12 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 	int index = getClientIndex(client_socket);
 	MessageFormat mf;
 
+	//receiving first header 
+	if (recv(client_socket, &mf.h1, 1, 0) <= 0 || mf.h1 != 'c') {
+		return false;
+	}
+	cout << "h1: " << mf.h1 << endl;
+	//receiving length header
 	if (recv(client_socket, (char *) &mf.length, 2, 0) <= 0) {
 		if (index != -1)
 		{
@@ -73,10 +79,38 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 		closesocket(client_socket);
 		return false;
 	}
+	cout << "length: " << mf.length << endl;
 
-	recv(client_socket, (char *) & mf.data, mf.length, 0);
+	//receiving checksum
+	if (recv(client_socket, (char*)&mf.checksum, 2, 0) <= 0) {
+		if (index != -1)
+		{
+			deleteClient(client_socket);
+		}
+		closesocket(client_socket);
+		return false;
+	}
+	cout << "received checksum:  " << mf.checksum << endl;
 
-	s = string(mf.data, mf.length);
+	//receiving data
+	if (recv(client_socket, (char*)&mf.data, mf.length, 0) <= 0) {
+		if (index != -1)
+		{
+			deleteClient(client_socket);
+		}
+		closesocket(client_socket);
+		return false;
+	}
+	cout << "received data : " << string(mf.data, mf.length) << endl;
+	cout << "calculated checksum:  " << calculateChecksum(string(mf.data, mf.length))<< endl;
+
+	if(mf.checksum == calculateChecksum(string(mf.data, mf.length)))
+	{ 
+		s = string(mf.data, mf.length); 
+	}
+	else {
+		return false;
+	}
 
 	return true;
 }
@@ -89,13 +123,17 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 */
 static bool sendMessageToClient(const string& message, SOCKET client_socket) {
 
-	uint16_t length = static_cast <uint16_t> (message.size());
 	int indexOfClient = getClientIndex(client_socket);
+
+	//creating packet
 	MessageFormat mf{};
+	uint16_t length = static_cast <uint16_t> (message.size());
+	mf.h1 = 's';
 	mf.length = length;
 	memcpy(mf.data, message.c_str(), length);
-	
-	if (send(client_socket, (const char*)&mf, length + 2, 0) <= 0) {
+	mf.checksum = calculateChecksum(message);
+
+	if (send(client_socket, (const char*)&mf, length + 5, 0) <= 0) {
 		if (indexOfClient != -1) {
 			deleteClient(client_socket);
 		}

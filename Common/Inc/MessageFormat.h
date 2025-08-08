@@ -1,14 +1,36 @@
 #include <stdint.h>
-
+using namespace std;
 #ifndef __MessageFormat_H
 #define __MessageFormat_H
 
 #define MESSAGE_FORMAT_MAX_DATA_LEN 1024
 
-typedef struct
-{
-	uint16_t length;
-	char data[MESSAGE_FORMAT_MAX_DATA_LEN];
-}MessageFormat;
+#ifdef __GNUC__
+#define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
+#endif
 
+#ifdef _MSC_VER
+#define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop))
+#endif
+
+PACK(typedef struct
+{	
+	char h1;
+	uint16_t length;
+    uint16_t checksum;
+	char data[MESSAGE_FORMAT_MAX_DATA_LEN];
+}MessageFormat);
+
+/**
+*checksum calculater for error detection
+* @param data string data to calculate checksum
+* @return 1 byte checksum value
+*/
+uint16_t calculateChecksum(const string& data) {
+    uint16_t checksum = 0;
+    for (char ch : data) {
+        checksum += static_cast<uint16_t>(ch);
+    }
+    return checksum;
+}
 #endif // __MessageFormat_H

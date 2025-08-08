@@ -36,11 +36,13 @@ State currentState;
  */
 bool static sendMessageToServer(string message, SOCKET clientSocket) {
 	uint16_t length = static_cast<uint16_t>(message.size());
-	//creating packet to send
+	//creating packet to 
 	MessageFormat mf{};
+	mf.h1 = 'c';
 	mf.length = length;
+	mf.checksum = calculateChecksum(message);
 	memcpy(mf.data, message.c_str(), length);
-	if (send(clientSocket, (const char*)&mf, length + 2, 0) <= 0) {
+	if (send(clientSocket, (const char*)&mf, length + 5, 0) <= 0) {
 		currentState = State::TERMINATE;
 		return false;
 	}
@@ -55,16 +57,44 @@ bool static sendMessageToServer(string message, SOCKET clientSocket) {
  */
 bool static receiveMessageFromServer(string& s, SOCKET client_socket) {
 	MessageFormat mf{};
+
+	//receiving first byte which is header that indicates the sender
+	if (recv(client_socket, (char*)&mf.h1, 1, 0) <= 0) {
+		currentState = State::TERMINATE;
+		return false;
+	}
+	if (mf.h1 != 's') {
+		return false;
+	}
+	//receiving the next two bytes which is length header
 	if(recv(client_socket, (char*)&mf.length, 2, 0) <= 0)
 	{
 		currentState = State::TERMINATE;
 		return false;
 	}
+
+	//receiving checksum header
+	if (recv(client_socket, (char*)&mf.checksum, 2, 0) <= 0)
+	{
+		currentState = State::TERMINATE;
+		return false;
+
+	}	
+	
 	if (recv(client_socket, (char*)&mf.data, mf.length, 0) <= 0) {
 		currentState = State::TERMINATE;
 		return false;
 	}
-	s = string(mf.data, mf.length);
+
+	//checking checksum
+	if(mf.checksum == calculateChecksum(mf.data))
+	{ 
+		s = string(mf.data, mf.length); 
+	}
+	else { 
+		return false; 
+	}
+	
 	return true;
 }
 
@@ -379,7 +409,9 @@ static void handleRegisterMode(SOCKET clientSocket) {
 				getline(cin, username);
 				cout << endl;
 			}
-			sendMessageToServer(username, clientSocket);
+			if (!sendMessageToServer(username, clientSocket)) {
+				return;
+			}
 			recv(clientSocket, &isDuplicated, 1, 0);
 
 			if (isDuplicated == '1') {
@@ -399,7 +431,10 @@ static void handleRegisterMode(SOCKET clientSocket) {
 			if (enterKey.empty()) {
 				//send a signal to the server that the user is ready to join
 				char readySignal = '1';
-				send(clientSocket, &readySignal, 1, 0);
+				if (send(clientSocket, &readySignal, 1, 0) <= 0) {
+					currentState = State::TERMINATE;
+					return;
+				}
 				char isServerReady;
 				recv(clientSocket, &isServerReady, 1, 0);
 				if (isServerReady == '1') {
