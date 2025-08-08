@@ -26,11 +26,5 @@ PACK(typedef struct
 * @param data string data to calculate checksum
 * @return 1 byte checksum value
 */
-uint16_t calculateChecksum(const string& data) {
-    uint16_t checksum = 0;
-    for (char ch : data) {
-        checksum += static_cast<uint16_t>(ch);
-    }
-    return checksum;
-}
+uint16_t calculateChecksum(const string& data); 
 #endif // __MessageFormat_H

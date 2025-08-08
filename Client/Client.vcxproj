@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Common\Src\MessageFormat.cpp" />
     <ClCompile Include="Src\client.cpp" />
   </ItemGroup>
   <ItemGroup>

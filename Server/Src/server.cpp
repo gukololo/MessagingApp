@@ -67,9 +67,13 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 
 	//receiving first header 
 	if (recv(client_socket, &mf.h1, 1, 0) <= 0 || mf.h1 != 'c') {
+		if (index != -1)
+		{
+			deleteClient(client_socket);
+		}
+		closesocket(client_socket);
 		return false;
 	}
-	cout << "h1: " << mf.h1 << endl;
 	//receiving length header
 	if (recv(client_socket, (char *) &mf.length, 2, 0) <= 0) {
 		if (index != -1)
@@ -79,7 +83,6 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 		closesocket(client_socket);
 		return false;
 	}
-	cout << "length: " << mf.length << endl;
 
 	//receiving checksum
 	if (recv(client_socket, (char*)&mf.checksum, 2, 0) <= 0) {
@@ -90,7 +93,6 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 		closesocket(client_socket);
 		return false;
 	}
-	cout << "received checksum:  " << mf.checksum << endl;
 
 	//receiving data
 	if (recv(client_socket, (char*)&mf.data, mf.length, 0) <= 0) {
@@ -101,8 +103,6 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 		closesocket(client_socket);
 		return false;
 	}
-	cout << "received data : " << string(mf.data, mf.length) << endl;
-	cout << "calculated checksum:  " << calculateChecksum(string(mf.data, mf.length))<< endl;
 
 	if(mf.checksum == calculateChecksum(string(mf.data, mf.length)))
 	{ 

@@ -18,6 +18,9 @@
     <ClCompile Include="Src\server.cpp">
       <Filter>Src</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\Src\MessageFormat.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\ClientUser.h">
