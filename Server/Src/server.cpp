@@ -65,8 +65,7 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 	int index = getClientIndex(client_socket);
 	MessageFormat mf;
 
-	//receiving first header 
-	if (recv(client_socket, &mf.h1, 1, 0) <= 0 || mf.h1 != 'c') {
+	if (recv(client_socket, (char*)& mf, 11, 0) <= 0) {
 		if (index != -1)
 		{
 			deleteClient(client_socket);
@@ -74,26 +73,9 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 		closesocket(client_socket);
 		return false;
 	}
-	//receiving length header
-	if (recv(client_socket, (char *) &mf.length, 2, 0) <= 0) {
-		if (index != -1)
-		{
-			deleteClient(client_socket);
-		}
-		closesocket(client_socket);
+	if (mf.h1 != 'c' ) {
 		return false;
 	}
-
-	//receiving checksum
-	if (recv(client_socket, (char*)&mf.checksum, 2, 0) <= 0) {
-		if (index != -1)
-		{
-			deleteClient(client_socket);
-		}
-		closesocket(client_socket);
-		return false;
-	}
-
 	//receiving data
 	if (recv(client_socket, (char*)&mf.data, mf.length, 0) <= 0) {
 		if (index != -1)
@@ -104,15 +86,8 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 		return false;
 	}
 
-	if(mf.checksum == calculateChecksum(string(mf.data, mf.length)))
-	{ 
-		s = string(mf.data, mf.length); 
-	}
-	else {
-		return false;
-	}
-
-	return true;
+	//comparing the received checksum with our calculation
+	return mf.checksum == calculateChecksum(s = string(mf.data, mf.length));
 }
 
 /**
@@ -130,10 +105,11 @@ static bool sendMessageToClient(const string& message, SOCKET client_socket) {
 	uint16_t length = static_cast <uint16_t> (message.size());
 	mf.h1 = 's';
 	mf.length = length;
+	mf.num = 31;
 	memcpy(mf.data, message.c_str(), length);
 	mf.checksum = calculateChecksum(message);
 
-	if (send(client_socket, (const char*)&mf, length + 5, 0) <= 0) {
+	if (send(client_socket, (const char*)&mf, length + 11, 0) <= 0) {
 		if (indexOfClient != -1) {
 			deleteClient(client_socket);
 		}

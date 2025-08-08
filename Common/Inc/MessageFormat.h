@@ -17,7 +17,8 @@ PACK(typedef struct
 {	
 	char h1;
 	uint16_t length;
-    uint16_t checksum;
+	int num;
+    uint32_t checksum;
 	char data[MESSAGE_FORMAT_MAX_DATA_LEN];
 }MessageFormat);
 
@@ -26,5 +27,5 @@ PACK(typedef struct
 * @param data string data to calculate checksum
 * @return 1 byte checksum value
 */
-uint16_t calculateChecksum(const string& data); 
+uint32_t calculateChecksum(const string& data); 
 #endif // __MessageFormat_H
