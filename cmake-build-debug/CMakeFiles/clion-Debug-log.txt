@@ -1,1 +1,0 @@
-CMakeLists.txt not found in C:\Users\gurka\OneDrive\Desktop\MessagingApp3\MessagingApp Select CMakeLists.txt
