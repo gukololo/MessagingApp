@@ -41,9 +41,8 @@ bool static sendMessageToServer(string message, SOCKET clientSocket) {
 	mf.h1 = 'c';
 	mf.length = length;
 	mf.checksum = calculateChecksum(message);
-	mf.num = 17;
 	memcpy(mf.data, message.c_str(), length);
-	if (send(clientSocket, (const char*)&mf, length + 11, 0) <= 0) {
+	if (send(clientSocket, (const char*)&mf, length + 7, 0) <= 0) {
 		currentState = State::TERMINATE;
 		return false;
 	}
@@ -69,13 +68,6 @@ bool static receiveMessageFromServer(string& s, SOCKET client_socket) {
 	}
 	//receiving the next two bytes which is length header
 	if(recv(client_socket, (char*)&mf.length, 2, 0) <= 0)
-	{
-		currentState = State::TERMINATE;
-		return false;
-	}
-
-	//number header
-	if (recv(client_socket, (char*)&mf.num, 4, 0) <= 0)
 	{
 		currentState = State::TERMINATE;
 		return false;

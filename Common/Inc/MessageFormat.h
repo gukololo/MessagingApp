@@ -17,7 +17,6 @@ PACK(typedef struct
 {	
 	char h1;
 	uint16_t length;
-	int num;
     uint32_t checksum;
 	char data[MESSAGE_FORMAT_MAX_DATA_LEN];
 }MessageFormat);

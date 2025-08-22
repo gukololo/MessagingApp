@@ -65,7 +65,7 @@ static bool receiveMessageFromClient(string& s, SOCKET client_socket) {
 	int index = getClientIndex(client_socket);
 	MessageFormat mf;
 
-	if (recv(client_socket, (char*)& mf, 11, 0) <= 0) {
+	if (recv(client_socket, (char*)& mf, 7, 0) <= 0) {
 		if (index != -1)
 		{
 			deleteClient(client_socket);
@@ -105,11 +105,10 @@ static bool sendMessageToClient(const string& message, SOCKET client_socket) {
 	uint16_t length = static_cast <uint16_t> (message.size());
 	mf.h1 = 's';
 	mf.length = length;
-	mf.num = 31;
 	memcpy(mf.data, message.c_str(), length);
 	mf.checksum = calculateChecksum(message);
 
-	if (send(client_socket, (const char*)&mf, length + 11, 0) <= 0) {
+	if (send(client_socket, (const char*)&mf, length + 7, 0) <= 0) {
 		if (indexOfClient != -1) {
 			deleteClient(client_socket);
 		}
