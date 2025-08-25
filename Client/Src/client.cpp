@@ -73,6 +73,7 @@ bool static receiveMessageFromServer(string& s, SOCKET client_socket) {
 		return false;
 	}
 
+
 	//receiving checksum header
 	if (recv(client_socket, (char*)&mf.checksum, 4, 0) <= 0)
 	{
